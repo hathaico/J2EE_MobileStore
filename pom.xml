@@ -20,6 +20,12 @@
     </properties>
 
     <dependencies>
+                <!-- BCrypt for password hashing -->
+                <dependency>
+                    <groupId>org.mindrot</groupId>
+                    <artifactId>jbcrypt</artifactId>
+                    <version>0.4</version>
+                </dependency>
         <!-- Servlet API (Jakarta EE 9 for Tomcat 10) -->
         <dependency>
             <groupId>jakarta.servlet</groupId>
@@ -105,6 +111,14 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- JUnit 5 for unit testing -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.9.3</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

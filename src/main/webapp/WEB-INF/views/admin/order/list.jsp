@@ -49,7 +49,11 @@
                 <option value="DELIVERED" ${statusFilter == 'DELIVERED' ? 'selected' : ''}>Đã giao hàng</option>
                 <option value="CANCELLED" ${statusFilter == 'CANCELLED' ? 'selected' : ''}>Đã hủy</option>
             </select>
-            <c:if test="${not empty statusFilter}">
+            <label style="font-size:0.85rem; font-weight:600; color:var(--admin-text-secondary); white-space:nowrap;">Từ ngày:</label>
+            <input type="date" name="startDate" value="${startDateFilter}" class="admin-form-input" style="width:auto; padding:7px 12px;" onchange="this.form.submit()"/>
+            <label style="font-size:0.85rem; font-weight:600; color:var(--admin-text-secondary); white-space:nowrap;">Đến ngày:</label>
+            <input type="date" name="endDate" value="${endDateFilter}" class="admin-form-input" style="width:auto; padding:7px 12px;" onchange="this.form.submit()"/>
+            <c:if test="${not empty statusFilter || not empty startDateFilter || not empty endDateFilter}">
                 <a href="${ctx}/admin/orders" style="color:var(--admin-text-muted); font-size:0.85rem; text-decoration:none;" title="Xóa bộ lọc">
                     <i class="bi bi-x-circle"></i>
                 </a>
@@ -115,7 +119,7 @@
                                 </c:choose>
                             </td>
                             <td style="font-size:0.85rem; color:var(--admin-text-secondary);">
-                                <fmt:formatDate value="${order.createdAt}" pattern="dd/MM/yyyy HH:mm"/>
+                                ${order.createdAtString}
                             </td>
                             <td style="text-align:center;">
                                 <a href="${ctx}/admin/orders?action=detail&id=${order.orderId}" class="admin-action-btn btn-view" title="Chi tiết">

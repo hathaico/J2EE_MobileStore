@@ -47,13 +47,8 @@ public class AdminOrderController extends HttpServlet {
             throws ServletException, IOException {
         String action = request.getParameter("action");
         
-        if ("updateStatus".equals(action)) {
-            updateOrderStatus(request, response);
-        } else if ("updatePayment".equals(action)) {
-            updatePaymentStatus(request, response);
-        } else {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid action");
-        }
+        // Đã loại bỏ các hàm cập nhật trạng thái đơn hàng và thanh toán.
+        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid action");
     }
     
     /**
@@ -107,25 +102,7 @@ public class AdminOrderController extends HttpServlet {
      */
     private void updateOrderStatus(HttpServletRequest request, HttpServletResponse response) 
             throws IOException {
-        try {
-            int orderId = Integer.parseInt(request.getParameter("orderId"));
-            String status = request.getParameter("status");
-            
-            boolean success = orderService.updateOrderStatus(orderId, status);
-            
-            if (success) {
-                response.sendRedirect(request.getContextPath() + 
-                                    "/admin/orders?success=Đã cập nhật trạng thái đơn hàng");
-            } else {
-                response.sendRedirect(request.getContextPath() + 
-                                    "/admin/orders?error=Không thể cập nhật trạng thái");
-            }
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            response.sendRedirect(request.getContextPath() + 
-                                "/admin/orders?error=" + e.getMessage());
-        }
+        // Đã loại bỏ hàm updateOrderStatus khỏi OrderService. Nếu cần cập nhật trạng thái, hãy bổ sung lại logic phù hợp.
     }
     
     /**
@@ -133,24 +110,6 @@ public class AdminOrderController extends HttpServlet {
      */
     private void updatePaymentStatus(HttpServletRequest request, HttpServletResponse response) 
             throws IOException {
-        try {
-            int orderId = Integer.parseInt(request.getParameter("orderId"));
-            String paymentStatus = request.getParameter("paymentStatus");
-            
-            boolean success = orderService.updatePaymentStatus(orderId, paymentStatus);
-            
-            if (success) {
-                response.sendRedirect(request.getContextPath() + 
-                                    "/admin/orders?success=Đã cập nhật trạng thái thanh toán");
-            } else {
-                response.sendRedirect(request.getContextPath() + 
-                                    "/admin/orders?error=Không thể cập nhật trạng thái thanh toán");
-            }
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            response.sendRedirect(request.getContextPath() + 
-                                "/admin/orders?error=" + e.getMessage());
-        }
+        // Đã loại bỏ hàm updatePaymentStatus khỏi OrderService. Nếu cần cập nhật trạng thái thanh toán, hãy bổ sung lại logic phù hợp.
     }
 }

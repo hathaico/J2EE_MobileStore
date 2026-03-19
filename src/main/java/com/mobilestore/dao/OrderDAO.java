@@ -198,10 +198,8 @@ public class OrderDAO extends BaseDAO {
         PreparedStatement itemStmt = null;
         ResultSet rs = null;
         
-        String orderSql = "INSERT INTO orders (customer_id, customer_name, customer_phone, " +
-                         "customer_email, shipping_address, total_amount, status, " +
-                         "payment_method, payment_status, notes) " +
-                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String orderSql = "INSERT INTO orders (customer_id, voucher_id, shipping_address, total_amount, status, payment_method, notes) " +
+             "VALUES (?, ?, ?, ?, ?, ?, ?)";
         
         String itemSql = "INSERT INTO order_items (order_id, product_id, product_name, " +
                         "price, quantity, subtotal) VALUES (?, ?, ?, ?, ?, ?)";
@@ -213,15 +211,12 @@ public class OrderDAO extends BaseDAO {
             // Insert order
             orderStmt = conn.prepareStatement(orderSql, Statement.RETURN_GENERATED_KEYS);
             orderStmt.setObject(1, order.getCustomerId());
-            orderStmt.setString(2, order.getCustomerName());
-            orderStmt.setString(3, order.getCustomerPhone());
-            orderStmt.setString(4, order.getCustomerEmail());
-            orderStmt.setString(5, order.getShippingAddress());
-            orderStmt.setBigDecimal(6, order.getTotalAmount());
-            orderStmt.setString(7, order.getStatus());
-            orderStmt.setString(8, order.getPaymentMethod());
-            orderStmt.setString(9, order.getPaymentStatus());
-            orderStmt.setString(10, order.getNotes());
+            orderStmt.setObject(2, order.getVoucherId());
+            orderStmt.setString(3, order.getShippingAddress());
+            orderStmt.setBigDecimal(4, order.getTotalAmount());
+            orderStmt.setString(5, order.getStatus());
+            orderStmt.setString(6, order.getPaymentMethod());
+            orderStmt.setString(7, order.getNotes());
             
             int affectedRows = orderStmt.executeUpdate();
             
@@ -348,14 +343,12 @@ public class OrderDAO extends BaseDAO {
         int customerId = rs.getInt("customer_id");
         order.setCustomerId(rs.wasNull() ? null : customerId);
         
-        order.setCustomerName(rs.getString("customer_name"));
-        order.setCustomerPhone(rs.getString("customer_phone"));
-        order.setCustomerEmail(rs.getString("customer_email"));
+        // Bỏ các trường không có trong bảng
         order.setShippingAddress(rs.getString("shipping_address"));
         order.setTotalAmount(rs.getBigDecimal("total_amount"));
         order.setStatus(rs.getString("status"));
         order.setPaymentMethod(rs.getString("payment_method"));
-        order.setPaymentStatus(rs.getString("payment_status"));
+        // Bỏ các trường không có trong bảng
         order.setNotes(rs.getString("notes"));
         
         Timestamp createdAt = rs.getTimestamp("created_at");

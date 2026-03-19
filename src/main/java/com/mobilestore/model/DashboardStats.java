@@ -11,17 +11,37 @@ public class DashboardStats {
     private int totalOrders;
     private int totalCustomers;
     private BigDecimal totalRevenue;
-    
+
     private int pendingOrders;
     private int confirmedOrders;
     private int shippingOrders;
     private int deliveredOrders;
-    
+
     private int lowStockProducts;
     private int outOfStockProducts;
-    
+
     private int todayOrders;
     private BigDecimal todayRevenue;
+
+    // Add usedVouchers for dashboard
+    private int usedVouchers;
+
+    // Add totalVoucherDiscount for dashboard
+    private java.math.BigDecimal totalVoucherDiscount;
+            public java.math.BigDecimal getTotalVoucherDiscount() {
+                return totalVoucherDiscount;
+            }
+
+            public void setTotalVoucherDiscount(java.math.BigDecimal totalVoucherDiscount) {
+                this.totalVoucherDiscount = totalVoucherDiscount;
+            }
+        public int getUsedVouchers() {
+            return usedVouchers;
+        }
+
+        public void setUsedVouchers(int usedVouchers) {
+            this.usedVouchers = usedVouchers;
+        }
     
     public DashboardStats() {
     }

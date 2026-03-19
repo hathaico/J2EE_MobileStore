@@ -11,7 +11,7 @@ import java.sql.SQLException;
 public class DBConnection {
     private static final String URL = "jdbc:mysql://localhost:3306/mobilestore_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
     private static final String USER = "root";
-    private static final String PASSWORD = "admin123";
+    private static final String PASSWORD = "bigbone3012";
     private static final String DRIVER = "com.mysql.cj.jdbc.Driver";
     
     // Load driver once when class is loaded

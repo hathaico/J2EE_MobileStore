@@ -156,16 +156,15 @@
                             
                             <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; color: var(--gray-700);">
                                 <span>Giảm giá:</span>
-                                <span style="font-weight: 600;">0₫</span>
                             </div>
                             
                             <div style="height: 1px; background: var(--gray-200); margin: 1.5rem 0;"></div>
                             
                             <div style="display: flex; justify-content: space-between; margin-bottom: 2rem;">
                                 <strong style="font-size: 1.25rem;">Tổng cộng:</strong>
-                                <strong style="font-size: 1.5rem; color: var(--primary-color);" id="total">
-                                    <fmt:formatNumber value="${cart.total}" pattern="#,##0₫"/>
-                                </strong>
+                                    <strong style="font-size: 1.5rem; color: var(--primary-color);" id="total-amount">
+                                        <fmt:formatNumber value="${cart.total}" pattern="#,##0₫"/>
+                                    </strong>
                             </div>
                             
                             <a href="${pageContext.request.contextPath}/checkout" 
@@ -207,17 +206,6 @@
                             </ul>
                         </div>
 
-                        <!-- Promo Code -->
-                        <div style="background: white; border-radius: 16px; padding: 1.5rem; box-shadow: var(--shadow-md); margin-top: 1.5rem;">
-                            <h6 style="font-weight: 600; margin-bottom: 1rem;">
-                                <i class="bi bi-tag"></i> Mã Giảm Giá
-                            </h6>
-                            <div style="display: flex; gap: 0.5rem;">
-                                <input type="text" class="form-control" placeholder="Nhập mã giảm giá" 
-                                       style="flex: 1; height: 44px;">
-                                <button class="btn btn-outline" style="height: 44px;">Áp dụng</button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -311,4 +299,51 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+
+<script>
+// Voucher AJAX logic
+document.addEventListener('DOMContentLoaded', function() {
+    var applyBtn = document.getElementById('apply-voucher-btn');
+    var codeInput = document.getElementById('voucher-code-input');
+    var discountSpan = document.getElementById('discount-amount');
+    var totalSpan = document.getElementById('total-amount');
+    var subtotal = ${cart.total};
+    var appliedVoucher = null;
+    if (applyBtn && codeInput) {
+        applyBtn.addEventListener('click', function() {
+            var code = codeInput.value.trim();
+            if (!code) { alert('Vui lòng nhập mã giảm giá!'); return; }
+            fetch(cartContextPath + '/api/voucher', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'code=' + encodeURIComponent(code) + '&orderTotal=' + subtotal
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.voucher) {
+                    appliedVoucher = data.voucher;
+                    let discount = 0;
+                    if (appliedVoucher.discountType === 'percent') {
+                        discount = subtotal * (appliedVoucher.discountValue / 100);
+                        if (appliedVoucher.maxDiscount && discount > appliedVoucher.maxDiscount) {
+                            discount = appliedVoucher.maxDiscount;
+                        }
+                    } else if (appliedVoucher.discountType === 'amount') {
+                        discount = appliedVoucher.discountValue;
+                    }
+                    if (discount > subtotal) discount = subtotal;
+                    discountSpan.textContent = discount.toLocaleString('vi-VN') + '₫';
+                    totalSpan.textContent = (subtotal - discount).toLocaleString('vi-VN') + '₫';
+                    codeInput.disabled = true;
+                    applyBtn.disabled = true;
+                    applyBtn.textContent = 'Đã áp dụng';
+                } else {
+                    alert(data.message || 'Mã giảm giá không hợp lệ hoặc không đủ điều kiện.');
+                }
+            })
+            .catch(() => alert('Có lỗi khi kiểm tra mã giảm giá.'));
+        });
+    }
+});
+</script>
 <jsp:include page="../common/footer.jsp"/>

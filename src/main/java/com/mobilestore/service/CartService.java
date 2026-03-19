@@ -12,6 +12,15 @@ import jakarta.servlet.http.HttpSession;
  * Business logic for shopping cart operations
  */
 public class CartService {
+        // Hàm tiện ích cho kiểm thử tự động (không phụ thuộc HttpSession)
+        public Cart createCart() {
+            return new Cart();
+        }
+
+        public void addProductToCart(Cart cart, Product product, int quantity) {
+            if (cart == null || product == null || quantity <= 0) return;
+            cart.addItem(product, quantity);
+        }
     private static final String CART_SESSION_KEY = "cart";
     
     private final ProductDAO productDAO;
@@ -87,28 +96,25 @@ public class CartService {
      */
     public boolean updateCartItem(HttpSession session, int productId, int quantity) {
         Cart cart = getCart(session);
-        
         if (quantity <= 0) {
             cart.removeItem(productId);
             return true;
         }
-        
         // Get product from database to check stock
         Product product = productDAO.getProductById(productId);
-        
         if (product == null) {
             throw new IllegalArgumentException("Product not found");
         }
-        
         // Check if quantity exceeds stock
         if (quantity > product.getStockQuantity()) {
-            throw new IllegalArgumentException("Quantity exceeds available stock. Available: " + 
-                                             product.getStockQuantity());
+            throw new IllegalArgumentException("Quantity exceeds available stock. Available: " + product.getStockQuantity());
         }
-        
-        // Update quantity
-        cart.updateItem(productId, quantity);
-        
+        // Nếu item chưa có trong cart thì thêm mới, nếu đã có thì update số lượng
+        if (cart.getItem(productId) == null) {
+            cart.addItem(product, quantity);
+        } else {
+            cart.updateItem(productId, quantity);
+        }
         return true;
     }
     

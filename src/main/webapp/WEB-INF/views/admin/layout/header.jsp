@@ -60,6 +60,12 @@
                         <span class="nav-badge">${pendingOrderCount}</span>
                     </c:if>
                 </a>
+                <a href="${ctx}/admin/users" class="admin-nav-item ${activePage == 'users' ? 'active' : ''}">
+                    <i class="bi bi-people-fill"></i> Người dùng
+                </a>
+                <a href="${ctx}/admin/vouchers" class="admin-nav-item ${activePage == 'vouchers' ? 'active' : ''}">
+                    <i class="bi bi-ticket-perforated"></i> Voucher
+                </a>
             </div>
 
             <div class="admin-nav-section">

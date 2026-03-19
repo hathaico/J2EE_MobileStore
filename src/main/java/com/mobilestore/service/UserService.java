@@ -24,38 +24,42 @@ public class UserService {
      * @param password Plain text password
      * @return User object if authentication successful, null otherwise
      */
-    public User authenticate(String username, String password) {
+    public User authenticate(String usernameOrEmail, String password) {
         System.out.println("=== Authentication Attempt ===");
-        System.out.println("Username: " + username);
-        
+        System.out.println("Username/Email: " + usernameOrEmail);
+
         // Validation
-        if (ValidationUtil.isEmpty(username) || ValidationUtil.isEmpty(password)) {
-            System.out.println("⚠ Empty username or password");
+        if (ValidationUtil.isEmpty(usernameOrEmail) || ValidationUtil.isEmpty(password)) {
+            System.out.println("⚠ Empty username/email or password");
             return null;
         }
-        
-        // Get user by username
-        User user = userDAO.getUserByUsername(username.trim());
-        
+
+        // Try get user by email first
+        User user = userDAO.getUserByEmail(usernameOrEmail.trim());
+        if (user == null) {
+            // Try get user by username
+            user = userDAO.getUserByUsername(usernameOrEmail.trim());
+        }
+
         // Check if user exists and is active
         if (user == null) {
             System.out.println("⚠ User not found in database");
             return null;
         }
-        
+
         System.out.println("✓ User found: " + user.getFullName() + " (Role: " + user.getRole() + ")");
         System.out.println("User active: " + user.getIsActive());
-        
+
         if (!user.getIsActive()) {
             System.out.println("⚠ User is not active");
             return null;
         }
-        
+
         // Verify password
         System.out.println("Verifying password...");
         boolean passwordMatch = PasswordUtil.verifyPassword(password, user.getPassword());
         System.out.println("Password match: " + passwordMatch);
-        
+
         if (passwordMatch) {
             System.out.println("✓ Authentication successful!");
             // Don't return password to the session
@@ -110,10 +114,25 @@ public class UserService {
     public boolean registerUser(User user) {
         try {
             // Validation
+
             if (ValidationUtil.isEmpty(user.getUsername()) || 
                 ValidationUtil.isEmpty(user.getPassword()) ||
                 ValidationUtil.isEmpty(user.getFullName()) ||
                 ValidationUtil.isEmpty(user.getEmail())) {
+                return false;
+            }
+
+            // Kiểm tra độ dài username
+            if (!ValidationUtil.isValidLength(user.getUsername(), 3, 50)) {
+                return false;
+            }
+
+            // Kiểm tra email hợp lệ
+            if (!ValidationUtil.isValidEmail(user.getEmail())) {
+                return false;
+            }
+
+            if (!ValidationUtil.isValidPassword(user.getPassword())) {
                 return false;
             }
             
@@ -132,14 +151,41 @@ public class UserService {
             String hashedPassword = PasswordUtil.hashPassword(plainPassword);
             user.setPassword(hashedPassword);
             
-            // Set default role for customer registration
+            // Thiết lập vai trò mặc định là 'USER' nếu chưa có
             if (user.getRole() == null || user.getRole().isEmpty()) {
-                user.setRole("CUSTOMER");
+                user.setRole("USER");
             }
             
             // Create user
             int userId = userDAO.createUser(user);
-            return userId > 0;
+            if (userId > 0) {
+                user.setUserId(userId);
+                // Tạo customer nếu chưa tồn tại theo email
+                com.mobilestore.dao.CustomerDAO customerDAO = new com.mobilestore.dao.CustomerDAO();
+                com.mobilestore.model.Customer existing = customerDAO.getCustomerByEmail(user.getEmail());
+                if (existing == null) {
+                    com.mobilestore.model.Customer customer = new com.mobilestore.model.Customer();
+                    customer.setFullName(user.getFullName());
+                    customer.setEmail(user.getEmail());
+                    customer.setUserId(userId);
+                    int custId = customerDAO.createCustomer(customer);
+                    System.out.println("[DEBUG] Created customer for userId=" + userId + ", email=" + user.getEmail() + ", customerId=" + custId);
+                } else {
+                    // Nếu customer đã có email nhưng userId=null hoặc khác userId mới, cập nhật lại userId
+                    if (existing.getUserId() == null || !existing.getUserId().equals(userId)) {
+                        boolean updated = customerDAO.updateCustomerUserId(existing.getCustomerId(), userId);
+                        if (updated) {
+                            System.out.println("[DEBUG] Updated customer userId for email=" + user.getEmail());
+                        } else {
+                            System.err.println("[DEBUG] Failed to update customer userId for email=" + user.getEmail());
+                        }
+                    } else {
+                        System.out.println("[DEBUG] Customer already exists for email=" + user.getEmail());
+                    }
+                }
+                return true;
+            }
+            return false;
             
         } catch (Exception e) {
             System.err.println("Error registering user: " + e.getMessage());
@@ -149,31 +195,49 @@ public class UserService {
     }
     
     /**
+     * Register a new user (for test compatibility)
+     */
+    public boolean register(User user) {
+        return registerUser(user);
+    }
+    
+    /**
      * Create a new user
      * @param user User object
      * @param plainPassword Plain text password
      * @return User ID if successful, -1 if failed
      */
     public int createUser(User user, String plainPassword) {
-        // Validation
-        validateUser(user);
-        validatePassword(plainPassword);
-        
-        // Check if username already exists
-        if (userDAO.usernameExists(user.getUsername())) {
-            throw new IllegalArgumentException("Username already exists");
+        System.out.println("[DEBUG][SERVICE] Bắt đầu createUser với username=" + user.getUsername() + ", email=" + user.getEmail() + ", role=" + user.getRole());
+        // Cho phép tạo user admin (userId==1) nếu cần, chỉ chặn sửa ở updateUser
+        try {
+            // Validation
+            validateUser(user);
+            System.out.println("[DEBUG][SERVICE] Qua validateUser");
+            validatePassword(plainPassword);
+            System.out.println("[DEBUG][SERVICE] Qua validatePassword");
+            // Check if username already exists
+            if (userDAO.usernameExists(user.getUsername())) {
+                System.out.println("[DEBUG][SERVICE] Username đã tồn tại");
+                throw new IllegalArgumentException("Username already exists");
+            }
+            // Check if email already exists
+            if (user.getEmail() != null && userDAO.emailExists(user.getEmail())) {
+                System.out.println("[DEBUG][SERVICE] Email đã tồn tại");
+                throw new IllegalArgumentException("Email already exists");
+            }
+            // Hash password
+            String hashedPassword = PasswordUtil.hashPassword(plainPassword);
+            user.setPassword(hashedPassword);
+            System.out.println("[DEBUG][SERVICE] Đã hash password, chuẩn bị insert DB");
+            int result = userDAO.createUser(user);
+            System.out.println("[DEBUG][SERVICE] Kết quả insert user: " + result);
+            return result;
+        } catch (Exception e) {
+            System.err.println("[DEBUG][SERVICE][ERROR] " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
-        
-        // Check if email already exists
-        if (user.getEmail() != null && userDAO.emailExists(user.getEmail())) {
-            throw new IllegalArgumentException("Email already exists");
-        }
-        
-        // Hash password
-        String hashedPassword = PasswordUtil.hashPassword(plainPassword);
-        user.setPassword(hashedPassword);
-        
-        return userDAO.createUser(user);
     }
     
     /**
@@ -183,9 +247,9 @@ public class UserService {
      */
     public boolean updateUser(User user) {
         // Validation
-        if (user.getUserId() == null) {
-            throw new IllegalArgumentException("User ID cannot be null");
-        }
+        if (user.getUserId() == null) throw new IllegalArgumentException("User ID cannot be null");
+        // Chỉ chặn sửa user admin (userId==1) khi update
+        if (user.getUserId() == 1) throw new IllegalArgumentException("Không thể sửa user admin!");
         
         // Check if user exists
         User existing = userDAO.getUserById(user.getUserId());
@@ -262,22 +326,15 @@ public class UserService {
      * @return true if successful, false otherwise
      */
     public boolean deleteUser(int userId) {
-        // Check if user exists
-        User user = userDAO.getUserById(userId);
-        if (user == null) {
-            throw new IllegalArgumentException("User not found");
-        }
-        
-        // Don't allow deleting the last admin
-        if ("ADMIN".equals(user.getRole())) {
-            List<User> admins = userDAO.getUsersByRole("ADMIN");
-            if (admins.size() <= 1) {
-                throw new IllegalArgumentException("Cannot delete the last admin user");
-            }
-        }
-        
-        return userDAO.deleteUser(userId);
+    if (userId == 1) throw new IllegalArgumentException("Không thể xoá user admin!");
+    User user = userDAO.getUserById(userId);
+    if (user == null) throw new IllegalArgumentException("User not found");
+    if ("ADMIN".equals(user.getRole())) {
+        List<User> admins = userDAO.getUsersByRole("ADMIN");
+        if (admins.size() <= 1) throw new IllegalArgumentException("Không thể xoá admin cuối cùng!");
     }
+    return userDAO.deleteUser(userId);
+}
     
     /**
      * Activate or deactivate a user
@@ -296,6 +353,17 @@ public class UserService {
      */
     public List<User> getUsersByRole(String role) {
         return userDAO.getUsersByRole(role);
+    }
+    
+    /**
+     * Get users with filter
+     * @param q Search query
+     * @param role User role
+     * @param active Active status
+     * @return List of users with the specified filter
+     */
+    public List<User> getUsersWithFilter(String q, String role, String active) {
+        return userDAO.getUsersWithFilter(q, role, active);
     }
     
     /**
@@ -333,7 +401,9 @@ public class UserService {
         }
         
         if (!"ADMIN".equals(user.getRole()) && !"STAFF".equals(user.getRole())) {
-            throw new IllegalArgumentException("Invalid role. Must be ADMIN or STAFF");
+            if (!"USER".equals(user.getRole())) {
+                throw new IllegalArgumentException("Invalid role. Must be ADMIN, STAFF, or USER");
+            }
         }
     }
     

@@ -7,14 +7,28 @@ import java.time.LocalDateTime;
  * Represents admin and staff users
  */
 public class User {
+    // ...existing code...
+
+    // Để JSP EL truy cập được user.active
+    public Boolean getActive() {
+        return isActive;
+    }
     private Integer userId;
     private String username;
     private String password;
     private String fullName;
     private String email;
+    private String phone;
     private String role; // ADMIN, STAFF
     private Boolean isActive;
     private LocalDateTime createdAt;
+        public String getPhone() {
+            return phone;
+        }
+
+        public void setPhone(String phone) {
+            this.phone = phone;
+        }
     
     // Constructors
     public User() {

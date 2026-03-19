@@ -19,6 +19,23 @@
 
 <!-- Stat Cards -->
 <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-sm-6">
+            <div class="admin-stat-card admin-animate-in">
+                <div class="stat-info">
+                    <h6>Voucher đã sử dụng</h6>
+                    <div class="stat-value">${stats.usedVouchers}</div>
+                    <span class="stat-trend up">
+                        <i class="bi bi-ticket-perforated"></i> lượt dùng
+                    </span>
+                    <div style="font-size:0.95rem; color:var(--admin-text-muted);">
+                        Tổng giảm: <fmt:formatNumber value="${stats.totalVoucherDiscount}" type="currency" currencyCode="VND" pattern="#,#00 ₫"/>
+                    </div>
+                </div>
+                <div class="stat-icon bg-orange">
+                    <i class="bi bi-ticket-perforated"></i>
+                </div>
+            </div>
+        </div>
     <div class="col-xl-3 col-sm-6">
         <div class="admin-stat-card admin-animate-in">
             <div class="stat-info">
@@ -156,6 +173,74 @@
 </div>
 
 <div class="row g-4">
+    <!-- Revenue & Orders Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="admin-card admin-animate-in">
+                <div class="admin-card-header">
+                    <h5><i class="bi bi-bar-chart-line"></i> Thống kê doanh thu & đơn hàng theo tháng</h5>
+                </div>
+                <div class="admin-card-body">
+                    <canvas id="revenueOrdersChart" height="80"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    // Dữ liệu mẫu, backend cần truyền revenueByMonth, ordersByMonth, labels
+    const revenueData = ${revenueByMonthJson}; // [10000000, 12000000, ...]
+    const ordersData = ${ordersByMonthJson};   // [20, 25, ...]
+    const labels = ${monthLabelsJson};         // ["01/2026", "02/2026", ...]
+
+    const ctx = document.getElementById('revenueOrdersChart').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Doanh thu (₫)',
+                    data: revenueData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    yAxisID: 'y',
+                },
+                {
+                    label: 'Đơn hàng',
+                    data: ordersData,
+                    backgroundColor: 'rgba(255, 206, 86, 0.6)',
+                    type: 'line',
+                    yAxisID: 'y1',
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            interaction: { mode: 'index', intersect: false },
+            stacked: false,
+            plugins: {
+                legend: { position: 'top' },
+                title: { display: false }
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    ticks: { callback: value => value.toLocaleString('vi-VN') + '₫' }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    grid: { drawOnChartArea: false },
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    </script>
     <!-- Recent Orders -->
     <div class="col-xl-8">
         <div class="admin-card admin-animate-in">

@@ -41,6 +41,9 @@
                     </div>
                     <div class="card-body">
                         <form action="${pageContext.request.contextPath}/checkout" method="post" id="checkoutForm">
+                                                        <!-- Hidden fields for voucher -->
+                                                        <input type="hidden" name="voucherCode" id="hidden-voucher-code" value="">
+                                                        <input type="hidden" name="voucherDiscount" id="hidden-voucher-discount" value="0">
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="customerName" class="form-label">Họ và Tên <span class="text-danger">*</span></label>
@@ -149,6 +152,18 @@
                                                 currencyCode="VND" pattern="#,##0 ₫"/>
                             </span>
                         </div>
+
+                            <div class="d-flex justify-content-between mb-2 align-items-center">
+                                <span>Mã giảm giá:</span>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <input type="text" class="form-control form-control-sm" placeholder="Nhập mã" style="width: 110px;" id="voucher-code-input">
+                                    <button class="btn btn-outline btn-sm" type="button" id="apply-voucher-btn">Áp dụng</button>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Giảm giá:</span>
+                                <span id="discount-amount">0₫</span>
+                            </div>
                         
                         <div class="d-flex justify-content-between mb-2">
                             <span>Phí vận chuyển:</span>
@@ -159,10 +174,10 @@
                         
                         <div class="d-flex justify-content-between">
                             <strong>Tổng cộng:</strong>
-                            <strong class="text-danger">
-                                <fmt:formatNumber value="${cart.total}" type="currency" 
-                                                currencyCode="VND" pattern="#,##0 ₫"/>
-                            </strong>
+                                <strong class="text-danger" id="total-amount">
+                                    <fmt:formatNumber value="${cart.total}" type="currency" 
+                                                    currencyCode="VND" pattern="#,#00 ₫"/>
+                                </strong>
                         </div>
                     </div>
                 </div>
@@ -185,6 +200,61 @@
     <%@ include file="/WEB-INF/views/common/footer.jsp" %>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+        // Voucher AJAX logic
+        document.addEventListener('DOMContentLoaded', function() {
+            var hiddenVoucherCode = document.getElementById('hidden-voucher-code');
+            var hiddenVoucherDiscount = document.getElementById('hidden-voucher-discount');
+            var applyBtn = document.getElementById('apply-voucher-btn');
+            var codeInput = document.getElementById('voucher-code-input');
+            var discountSpan = document.getElementById('discount-amount');
+            var totalSpan = document.getElementById('total-amount');
+            var subtotal = ${cart.total};
+            if (applyBtn && codeInput) {
+                applyBtn.addEventListener('click', function() {
+                    var code = codeInput.value.trim();
+                    if (!code) { alert('Vui lòng nhập mã giảm giá!'); return; }
+                    fetch('${pageContext.request.contextPath}/api/voucher', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: 'code=' + encodeURIComponent(code) + '&orderTotal=' + subtotal
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        console.log('Voucher API response:', data);
+                        if (data.success && data.voucher) {
+                            // Tính discount một lần duy nhất
+                            let discount = 0;
+                            let discountValue = Number(data.voucher.discountValue);
+                            let maxDiscount = Number(data.voucher.maxDiscount);
+                            let type = (data.voucher.discountType || '').toUpperCase();
+                            if (type === 'PERCENT') {
+                                discount = subtotal * (discountValue / 100);
+                                if (!isNaN(maxDiscount) && maxDiscount > 0 && discount > maxDiscount) {
+                                    discount = maxDiscount;
+                                }
+                            } else if (type === 'AMOUNT') {
+                                discount = discountValue;
+                            }
+                            if (discount > subtotal) discount = subtotal;
+                            // Cập nhật UI
+                            discountSpan.textContent = discount.toLocaleString('vi-VN') + '₫';
+                            totalSpan.textContent = (subtotal - discount).toLocaleString('vi-VN') + '₫';
+                            codeInput.disabled = true;
+                            applyBtn.disabled = true;
+                            applyBtn.textContent = 'Đã áp dụng';
+                            // Cập nhật hidden input
+                            if (hiddenVoucherCode) hiddenVoucherCode.value = data.voucher.code;
+                            if (hiddenVoucherDiscount) hiddenVoucherDiscount.value = discount;
+                        } else {
+                            alert(data.message || 'Mã giảm giá không hợp lệ hoặc không đủ điều kiện.');
+                        }
+                    })
+                    .catch(() => alert('Có lỗi khi kiểm tra mã giảm giá.'));
+                });
+            }
+        });
+        </script>
     <script>
         // Form validation
         document.getElementById('checkoutForm').addEventListener('submit', function(e) {

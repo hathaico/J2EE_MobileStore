@@ -58,6 +58,57 @@
     </error-page>
 
     <!-- Database Configuration -->
+
+    <!-- REST API Servlet: Product -->
+    <!-- REST API Servlet: Product Review -->
+    <servlet>
+        <servlet-name>ProductReviewApiServlet</servlet-name>
+        <servlet-class>com.mobilestore.api.ProductReviewApiServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ProductReviewApiServlet</servlet-name>
+        <url-pattern>/api/product-review</url-pattern>
+    </servlet-mapping>
+    <servlet>
+        <servlet-name>ProductApiServlet</servlet-name>
+        <servlet-class>com.mobilestore.api.ProductApiServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ProductApiServlet</servlet-name>
+        <url-pattern>/api/products/*</url-pattern>
+    </servlet-mapping>
+
+    <!-- REST API Servlet: User -->
+    <servlet>
+        <servlet-name>UserApiServlet</servlet-name>
+        <servlet-class>com.mobilestore.api.UserApiServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>UserApiServlet</servlet-name>
+        <url-pattern>/api/users/*</url-pattern>
+    </servlet-mapping>
+
+    <!-- REST API Servlet: Auth -->
+    <servlet>
+        <servlet-name>AuthApiServlet</servlet-name>
+        <servlet-class>com.mobilestore.api.AuthApiServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>AuthApiServlet</servlet-name>
+        <url-pattern>/api/auth/*</url-pattern>
+    </servlet-mapping>
+
+
+        <!-- REST API Servlet: Voucher -->
+        <servlet>
+            <servlet-name>VoucherApiServlet</servlet-name>
+            <servlet-class>com.mobilestore.api.VoucherApiServlet</servlet-class>
+        </servlet>
+        <servlet-mapping>
+            <servlet-name>VoucherApiServlet</servlet-name>
+            <url-pattern>/api/voucher</url-pattern>
+        </servlet-mapping>
+
     <context-param>
         <param-name>dbUrl</param-name>
         <param-value>jdbc:mysql://localhost:3306/mobilestore_db</param-value>

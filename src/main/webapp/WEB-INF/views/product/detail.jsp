@@ -344,18 +344,12 @@
 
             <!-- Reviews Tab -->
             <div class="tab-pane fade" id="reviews">
-                <div style="margin-bottom: 2rem; padding: 2rem; background: var(--gray-50); border-radius: 12px;">
+                <div id="review-summary" style="margin-bottom: 2rem; padding: 2rem; background: var(--gray-50); border-radius: 12px;">
                     <div style="display: flex; align-items: center; gap: 2rem; margin-bottom: 1rem;">
                         <div style="text-align: center;">
-                            <div style="font-size: 3rem; font-weight: 700; color: var(--primary-color);">4.5</div>
-                            <div style="display: flex; gap: 0.25rem; justify-content: center; margin-bottom: 0.5rem;">
-                                <i class="bi bi-star-fill" style="color: var(--warning-color);"></i>
-                                <i class="bi bi-star-fill" style="color: var(--warning-color);"></i>
-                                <i class="bi bi-star-fill" style="color: var(--warning-color);"></i>
-                                <i class="bi bi-star-fill" style="color: var(--warning-color);"></i>
-                                <i class="bi bi-star-half" style="color: var(--warning-color);"></i>
-                            </div>
-                            <div style="color: var(--gray-600);">128 đánh giá</div>
+                            <div id="avg-rating" style="font-size: 3rem; font-weight: 700; color: var(--primary-color);">...</div>
+                            <div id="avg-stars" style="display: flex; gap: 0.25rem; justify-content: center; margin-bottom: 0.5rem;"></div>
+                            <div id="review-count" style="color: var(--gray-600);">...</div>
                         </div>
                         <div style="flex: 1;">
                             <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
@@ -391,7 +385,102 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                                </div>
+                                <!-- Form gửi đánh giá -->
+                                <c:if test="${not empty sessionScope.user}">
+                                <form id="review-form" style="margin-bottom: 2rem; background: #fffbe6; padding: 1.5rem; border-radius: 12px;">
+                                        <div style="font-weight: 600; margin-bottom: 0.5rem;">Đánh giá của bạn:</div>
+                                        <div id="star-input" style="font-size: 2rem; color: var(--warning-color); margin-bottom: 1rem; cursor: pointer;"></div>
+                                        <input type="hidden" name="rating" id="rating-value" value="5" />
+                                        <textarea name="comment" id="review-comment" rows="3" class="form-control" placeholder="Nhận xét của bạn..." style="margin-bottom: 1rem;"></textarea>
+                                        <button type="submit" class="btn btn-primary">Gửi đánh giá</button>
+                                        <span id="review-msg" style="margin-left: 1rem; color: var(--success-color);"></span>
+                                </form>
+                                </c:if>
+                                <!-- Danh sách đánh giá -->
+                                <div id="review-list"></div>
+                                <script>
+                                // Hiển thị sao trung bình
+                                function renderStars(container, rating) {
+                                    let html = '';
+                                    for (let i = 1; i <= 5; i++) {
+                                        if (rating >= i) html += '<i class="bi bi-star-fill"></i>';
+                                        else if (rating >= i - 0.5) html += '<i class="bi bi-star-half"></i>';
+                                        else html += '<i class="bi bi-star"></i>';
+                                    }
+                                    container.innerHTML = html;
+                                }
+                                // Lấy đánh giá từ API
+                                function loadReviews() {
+                                    fetch('${pageContext.request.contextPath}/api/product-review?productId=${product.productId}')
+                                        .then(res => res.json())
+                                        .then(data => {
+                                            document.getElementById('avg-rating').textContent = data.averageRating.toFixed(1);
+                                            renderStars(document.getElementById('avg-stars'), data.averageRating);
+                                            document.getElementById('review-count').textContent = data.reviews.length + ' đánh giá';
+                                            let html = '';
+                                            if (data.reviews.length === 0) html = '<div style="color:var(--gray-500)">Chưa có đánh giá nào.</div>';
+                                            else data.reviews.forEach(r => {
+                                                html += `<div style="border-bottom:1px solid #eee;padding:1rem 0;">
+                                                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                                                        <span style="font-weight:600;">Người dùng #${r.userId}</span>
+                                                        <span>`;
+                                                for (let i = 1; i <= 5; i++) html += i <= r.rating ? '<i class=\'bi bi-star-fill\' style=\'color:var(--warning-color)\'></i>' : '<i class=\'bi bi-star\' style=\'color:var(--gray-300)\'></i>';
+                                                html += `</span>
+                                                        <span style="color:var(--gray-500);font-size:0.9em;">${r.createdAt ? r.createdAt.substring(0,10) : ''}</span>
+                                                    </div>
+                                                    <div style="margin-top:0.5rem;">${r.comment ? r.comment : ''}</div>
+                                                </div>`;
+                                            });
+                                            document.getElementById('review-list').innerHTML = html;
+                                        });
+                                }
+                                loadReviews();
+                                // Form gửi đánh giá
+                                const form = document.getElementById('review-form');
+                                if (form) {
+                                    // Sao chọn rating
+                                    const starInput = document.getElementById('star-input');
+                                    let curRating = 5;
+                                    function renderStarInput(val) {
+                                        let html = '';
+                                        for (let i = 1; i <= 5; i++) {
+                                            html += `<i class='bi bi-star${i <= val ? '-fill' : ''}' data-val='${i}'></i>`;
+                                        }
+                                        starInput.innerHTML = html;
+                                    }
+                                    renderStarInput(curRating);
+                                    starInput.addEventListener('mouseover', e => {
+                                        if (e.target.dataset.val) renderStarInput(Number(e.target.dataset.val));
+                                    });
+                                    starInput.addEventListener('mouseout', () => renderStarInput(curRating));
+                                    starInput.addEventListener('click', e => {
+                                        if (e.target.dataset.val) {
+                                            curRating = Number(e.target.dataset.val);
+                                            document.getElementById('rating-value').value = curRating;
+                                            renderStarInput(curRating);
+                                        }
+                                    });
+                                    form.onsubmit = function(ev) {
+                                        ev.preventDefault();
+                                        const rating = document.getElementById('rating-value').value;
+                                        const comment = document.getElementById('review-comment').value;
+                                        fetch('${pageContext.request.contextPath}/api/product-review', {
+                                            method: 'POST',
+                                            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                                            body: "productId=" + encodeURIComponent(${product.productId}) +
+                                                        "&userId=" + encodeURIComponent(${sessionScope.user.userId}) +
+                                                        "&rating=" + encodeURIComponent(rating) +
+                                                        "&comment=" + encodeURIComponent(comment)
+                                        }).then(res => res.text()).then(msg => {
+                                            document.getElementById('review-msg').textContent = msg.includes('success') ? 'Đã gửi đánh giá!' : msg;
+                                            loadReviews();
+                                            form.reset();
+                                            curRating = 5; renderStarInput(curRating);
+                                        });
+                                    }
+                                }
+                                </script>
 
                 <!-- Sample Review -->
                 <div style="padding: 1.5rem; border-bottom: 1px solid var(--gray-200);">

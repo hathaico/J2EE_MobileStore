@@ -11,6 +11,75 @@ import java.util.List;
  * Data Access Object for User operations
  */
 public class UserDAO extends BaseDAO {
+        /**
+         * Xóa user theo username
+         * @param username
+         * @return true nếu xóa thành công
+         */
+        public boolean deleteUserByUsername(String username) {
+            // Xóa customer liên kết trước
+            try (Connection conn = getConnection()) {
+                Integer userId = null;
+                String getUserIdSql = "SELECT user_id FROM users WHERE username = ?";
+                try (PreparedStatement getStmt = conn.prepareStatement(getUserIdSql)) {
+                    getStmt.setString(1, username);
+                    try (ResultSet rs = getStmt.executeQuery()) {
+                        if (rs.next()) userId = rs.getInt("user_id");
+                    }
+                }
+                if (userId != null) {
+                    String delCustSql = "DELETE FROM customers WHERE user_id = ?";
+                    try (PreparedStatement delCustStmt = conn.prepareStatement(delCustSql)) {
+                        delCustStmt.setInt(1, userId);
+                        delCustStmt.executeUpdate();
+                    }
+                }
+                String sql = "DELETE FROM users WHERE username = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                    stmt.setString(1, username);
+                    int affected = stmt.executeUpdate();
+                    return affected > 0;
+                }
+            } catch (SQLException e) {
+                System.err.println("Lỗi khi xóa user theo username: " + e.getMessage());
+                return false;
+            }
+        }
+
+        /**
+         * Xóa user theo email
+         * @param email
+         * @return true nếu xóa thành công
+         */
+        public boolean deleteUserByEmail(String email) {
+            // Xóa customer liên kết trước
+            try (Connection conn = getConnection()) {
+                Integer userId = null;
+                String getUserIdSql = "SELECT user_id FROM users WHERE email = ?";
+                try (PreparedStatement getStmt = conn.prepareStatement(getUserIdSql)) {
+                    getStmt.setString(1, email);
+                    try (ResultSet rs = getStmt.executeQuery()) {
+                        if (rs.next()) userId = rs.getInt("user_id");
+                    }
+                }
+                if (userId != null) {
+                    String delCustSql = "DELETE FROM customers WHERE user_id = ?";
+                    try (PreparedStatement delCustStmt = conn.prepareStatement(delCustSql)) {
+                        delCustStmt.setInt(1, userId);
+                        delCustStmt.executeUpdate();
+                    }
+                }
+                String sql = "DELETE FROM users WHERE email = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                    stmt.setString(1, email);
+                    int affected = stmt.executeUpdate();
+                    return affected > 0;
+                }
+            } catch (SQLException e) {
+                System.err.println("Lỗi khi xóa user theo email: " + e.getMessage());
+                return false;
+            }
+        }
     
     /**
      * Get all users
@@ -143,13 +212,17 @@ public class UserDAO extends BaseDAO {
     public int createUser(User user) {
         String sql = "INSERT INTO users (username, password, full_name, email, role, is_active) " +
                     "VALUES (?, ?, ?, ?, ?, ?)";
-        
+
         Connection conn = null;
         PreparedStatement stmt = null;
         ResultSet rs = null;
-        
+
         try {
             conn = getConnection();
+            // Log chi tiết thông tin DB đang kết nối
+            System.out.println("[DEBUG][DAO] DB URL: " + conn.getMetaData().getURL());
+            System.out.println("[DEBUG][DAO] DB Catalog: " + conn.getCatalog());
+            System.out.println("[DEBUG][DAO] Insert user: username=" + user.getUsername() + ", email=" + user.getEmail() + ", role=" + user.getRole());
             stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             stmt.setString(1, user.getUsername());
             stmt.setString(2, user.getPassword());
@@ -157,22 +230,29 @@ public class UserDAO extends BaseDAO {
             stmt.setString(4, user.getEmail());
             stmt.setString(5, user.getRole());
             stmt.setBoolean(6, user.getIsActive() != null ? user.getIsActive() : true);
-            
+
             int affectedRows = stmt.executeUpdate();
-            
+            System.out.println("[DEBUG][DAO] affectedRows=" + affectedRows);
+
             if (affectedRows > 0) {
                 rs = stmt.getGeneratedKeys();
                 if (rs.next()) {
-                    return rs.getInt(1);
+                    int newId = rs.getInt(1);
+                    System.out.println("[DEBUG][DAO] Generated userId=" + newId);
+                    return newId;
+                } else {
+                    System.out.println("[DEBUG][DAO] Không lấy được generatedKeys sau insert!");
                 }
+            } else {
+                System.out.println("[DEBUG][DAO] Không insert được user mới!");
             }
         } catch (SQLException e) {
-            System.err.println("Error creating user: " + e.getMessage());
+            System.err.println("[DEBUG][DAO] Error creating user: " + e.getMessage());
             e.printStackTrace();
         } finally {
             closeResources(conn, stmt, rs);
         }
-        
+
         return -1;
     }
     
@@ -182,6 +262,10 @@ public class UserDAO extends BaseDAO {
      * @return true if successful, false otherwise
      */
     public boolean updateUser(User user) {
+        if (user.getUserId() != null && user.getUserId() == 1) {
+            System.err.println("[DAO] Không cho phép update user admin!");
+            return false;
+        }
         String sql = "UPDATE users SET username = ?, full_name = ?, email = ?, " +
                     "role = ?, is_active = ? WHERE user_id = ?";
         
@@ -227,6 +311,10 @@ public class UserDAO extends BaseDAO {
      * @return true if successful, false otherwise
      */
     public boolean deleteUser(int userId) {
+        if (userId == 1) {
+            System.err.println("[DAO] Không cho phép xoá user admin!");
+            return false;
+        }
         String sql = "DELETE FROM users WHERE user_id = ?";
         
         try {
@@ -306,6 +394,53 @@ public class UserDAO extends BaseDAO {
         }
         
         return users;
+    }
+    
+    /**
+     * Lấy danh sách user theo filter (tìm kiếm, quyền, trạng thái)
+     */
+    public List<User> getUsersWithFilter(String q, String role, String active) {
+        List<User> users = new ArrayList<>();
+        StringBuilder sql = new StringBuilder("SELECT * FROM users WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+        if (q != null && !q.trim().isEmpty()) {
+            sql.append(" AND (LOWER(full_name) LIKE ? OR LOWER(email) LIKE ? OR LOWER(username) LIKE ?)");
+            String qLike = "%" + q.trim().toLowerCase() + "%";
+            params.add(qLike);
+            params.add(qLike);
+            params.add(qLike);
+        }
+        if (role != null && !role.isEmpty()) {
+            sql.append(" AND role = ?");
+            params.add(role);
+        }
+        if (active != null && !active.isEmpty()) {
+            sql.append(" AND is_active = ?");
+            params.add(Boolean.parseBoolean(active));
+        }
+        sql.append(" ORDER BY created_at DESC");
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        try {
+            conn = getConnection();
+            stmt = conn.prepareStatement(sql.toString());
+            for (int i = 0; i < params.size(); i++) {
+                stmt.setObject(i + 1, params.get(i));
+            }
+            rs = stmt.executeQuery();
+            while (rs.next()) {
+                users.add(mapResultSetToUser(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("Error filtering users: " + e.getMessage());
+            e.printStackTrace();
+            // Nếu có lỗi, trả về danh sách rỗng thay vì null
+            return new ArrayList<>();
+        } finally {
+            closeResources(conn, stmt, rs);
+        }
+        return users != null ? users : new ArrayList<>();
     }
     
     /**

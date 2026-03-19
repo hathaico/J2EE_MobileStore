@@ -1,17 +1,12 @@
 package com.mobilestore.model;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
-/**
- * Order Model
- * Represents a customer order
- */
 public class Order {
     private Integer orderId;
     private Integer customerId;
+    private Integer voucherId; // <--- Thêm dòng này
     private String customerName;
     private String customerPhone;
     private String customerEmail;
@@ -26,6 +21,12 @@ public class Order {
     
     // Order items
     private List<OrderItem> orderItems;
+        public Integer getVoucherId() {
+            return voucherId;
+        }
+        public void setVoucherId(Integer voucherId) {
+            this.voucherId = voucherId;
+        }
     
     public Order() {
         this.orderItems = new ArrayList<>();
@@ -241,6 +242,15 @@ public class Order {
         }
     }
     
+    /**
+     * Get formatted createdAt string for JSP display
+     * @return formatted date string or empty if null
+     */
+    public String getCreatedAtString() {
+        if (createdAt == null) return "";
+        return createdAt.toString().replace('T', ' ');
+    }
+
     @Override
     public String toString() {
         return "Order{" +
