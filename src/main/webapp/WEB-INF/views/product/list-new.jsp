@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ taglib prefix="ms" tagdir="/WEB-INF/tags" %>
 
 <c:set var="pageTitle" value="Danh Sách Sản Phẩm - Mobile Store" scope="request"/>
 <jsp:include page="../common/header.jsp"/>
@@ -133,7 +134,7 @@
 
                 <!-- Storage Filter -->
                 <div class="filter-group">
-                    <h3 class="filter-title"><i class="bi bi-hdd"></i> Bộ Nhớ</h3>
+                    <h3 class="filter-title"><i class="bi bi-hdd"></i> Dung Lượng</h3>
                     <div class="filter-option">
                         <input type="checkbox" id="storage-64">
                         <label for="storage-64" style="cursor: pointer;">64GB</label>
@@ -266,7 +267,7 @@
                                     <!-- Image -->
                                     <c:choose>
                                         <c:when test="${not empty product.imageUrl}">
-                                            <img src="${pageContext.request.contextPath}/assets/images/products/${product.imageUrl}" 
+                                            <img src="<ms:productImageSrc url="${product.imageUrl}" />"
                                                  alt="${product.productName}">
                                         </c:when>
                                         <c:otherwise>
@@ -370,7 +371,18 @@ function addToCart(productId) {
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-        if (data.success) { alert('Đã thêm sản phẩm vào giỏ hàng!'); location.reload(); }
+        if (data.success) {
+            if (typeof updateCartBadge === 'function') {
+                updateCartBadge(data.cartCount || 0);
+            } else {
+                var badge = document.querySelector('#cart-count-badge') || document.querySelector('.ms-badge');
+                if (badge) {
+                    badge.textContent = data.cartCount || parseInt(badge.textContent || '0', 10) + 1;
+                    badge.style.display = 'flex';
+                }
+            }
+            alert('Đã thêm sản phẩm vào giỏ hàng!');
+        }
         else alert('Có lỗi xảy ra: ' + data.message);
     })
     .catch(function() { alert('Có lỗi xảy ra khi thêm vào giỏ hàng'); });

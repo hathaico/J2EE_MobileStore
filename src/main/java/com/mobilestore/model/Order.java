@@ -219,7 +219,7 @@ public class Order {
             case "BANK_TRANSFER":
                 return "Chuyển khoản ngân hàng";
             case "CREDIT_CARD":
-                return "Thẻ tín dụng";
+                return "Thẻ ngân hàng";
             default:
                 return "Không xác định";
         }

@@ -36,6 +36,21 @@
                         <h5 class="mb-0"><i class="bi bi-bag-check"></i> Thông Tin Đơn Hàng #${order.orderId}</h5>
                     </div>
                     <div class="card-body">
+                        <c:if test="${param.payment == 'success'}">
+                            <div class="alert alert-success" role="alert">
+                                <i class="bi bi-check-circle-fill me-2"></i>Thanh toán qua thẻ ngân hàng thành công.
+                            </div>
+                        </c:if>
+                        <c:if test="${param.payment == 'mock_success'}">
+                            <div class="alert alert-info" role="alert">
+                                <i class="bi bi-bezier2 me-2"></i>Đơn hàng đã được thanh toán ở chế độ mô phỏng (DEV MODE).
+                            </div>
+                        </c:if>
+                        <c:if test="${param.payment == 'failed'}">
+                            <div class="alert alert-warning" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>Thanh toán thẻ chưa thành công. Bạn có thể thanh toán lại sau.
+                            </div>
+                        </c:if>
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <h6>Thông Tin Khách Hàng</h6>
@@ -82,7 +97,10 @@
                                     <tbody>
                                         <c:forEach var="item" items="${order.orderItems}">
                                             <tr>
-                                                <td>${item.productName}</td>
+                                                <td>
+                                                    <div>${item.productName}</div>
+                                                    <div class="text-muted" style="font-size: 0.85rem;">Màu: ${not empty item.selectedColor ? item.selectedColor : 'Chưa chọn'} | Dung lượng: ${not empty item.selectedCapacity ? item.selectedCapacity : 'Chưa chọn'}</div>
+                                                </td>
                                                 <td class="text-center">${item.quantity}</td>
                                                 <td class="text-end">
                                                     <fmt:formatNumber value="${item.price}" type="currency" 

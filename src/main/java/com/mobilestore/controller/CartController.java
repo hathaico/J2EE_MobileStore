@@ -100,10 +100,12 @@ public class CartController extends HttpServlet {
             // Get parameters
             int productId = Integer.parseInt(request.getParameter("productId"));
             int quantity = Integer.parseInt(request.getParameter("quantity"));
+            String selectedColor = request.getParameter("selectedColor");
+            String selectedCapacity = request.getParameter("selectedCapacity");
             
             // Add to cart
             HttpSession session = request.getSession();
-            cartService.addToCart(session, productId, quantity);
+            cartService.addToCart(session, productId, quantity, selectedColor, selectedCapacity);
             
             // Get updated cart count
             int cartCount = cartService.getCartItemCount(session);
@@ -135,13 +137,18 @@ public class CartController extends HttpServlet {
         Map<String, Object> result = new HashMap<>();
         
         try {
-            // Get parameters
-            int productId = Integer.parseInt(request.getParameter("productId"));
+            // Get parameters (prefer itemKey for product variants)
+            String itemKey = request.getParameter("itemKey");
             int quantity = Integer.parseInt(request.getParameter("quantity"));
             
             // Update cart
             HttpSession session = request.getSession();
-            cartService.updateCartItem(session, productId, quantity);
+            if (itemKey != null && !itemKey.trim().isEmpty()) {
+                cartService.updateCartItem(session, itemKey, quantity);
+            } else {
+                int productId = Integer.parseInt(request.getParameter("productId"));
+                cartService.updateCartItem(session, productId, quantity);
+            }
             
             // Get updated cart
             Cart cart = cartService.getCart(session);
@@ -175,12 +182,16 @@ public class CartController extends HttpServlet {
         Map<String, Object> result = new HashMap<>();
         
         try {
-            // Get parameters
-            int productId = Integer.parseInt(request.getParameter("productId"));
+            String itemKey = request.getParameter("itemKey");
             
             // Remove from cart
             HttpSession session = request.getSession();
-            cartService.removeFromCart(session, productId);
+            if (itemKey != null && !itemKey.trim().isEmpty()) {
+                cartService.removeFromCart(session, itemKey);
+            } else {
+                int productId = Integer.parseInt(request.getParameter("productId"));
+                cartService.removeFromCart(session, productId);
+            }
             
             // Get updated cart
             Cart cart = cartService.getCart(session);

@@ -1,6 +1,9 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page import="com.mobilestore.util.ProductColorUtil" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
+<%@ taglib prefix="ms" tagdir="/WEB-INF/tags" %>
 
 <c:set var="pageTitle" value="${product.productName} - Mobile Store" scope="request"/>
 <jsp:include page="../common/header.jsp"/>
@@ -20,17 +23,17 @@
         <div class="col-lg-6 mb-4">
             <div style="position: sticky; top: 100px;">
                 <!-- Main Image -->
-                <div style="background: white; border-radius: 16px; padding: 2rem; 
-                            box-shadow: var(--shadow-md); margin-bottom: 1rem; text-align: center;">
+                <div class="product-detail-gallery">
                     <c:choose>
                         <c:when test="${not empty product.imageUrl}">
-                            <img src="${pageContext.request.contextPath}/assets/images/products/${product.imageUrl}" 
-                                 alt="${product.productName}" 
-                                 style="max-width: 100%; height: auto; max-height: 500px; object-fit: contain;">
+                            <div class="product-detail-gallery__frame">
+                                <img src="<ms:productImageSrc url="${product.imageUrl}" />"
+                                     alt="${product.productName}">
+                            </div>
                         </c:when>
                         <c:otherwise>
-                            <div style="height: 500px; display: flex; align-items: center; justify-content: center;">
-                                <i class="bi bi-phone" style="font-size: 10rem; color: var(--gray-300);"></i>
+                            <div class="product-detail-gallery__frame product-detail-gallery__frame--empty">
+                                <i class="bi bi-phone"></i>
                             </div>
                         </c:otherwise>
                     </c:choose>
@@ -127,36 +130,65 @@
                     </div>
                 </div>
 
-                <!-- Color Selection (placeholder) -->
+                <!-- Color Selection -->
                 <div style="margin-bottom: 2rem;">
                     <div style="font-weight: 600; margin-bottom: 0.75rem;">Màu sắc:</div>
-                    <div style="display: flex; gap: 0.75rem;">
-                        <button style="width: 50px; height: 50px; border-radius: 12px; border: 2px solid var(--primary-color); 
-                                       background: linear-gradient(135deg, #1e293b 0%, #334155 100%); cursor: pointer; 
-                                       box-shadow: var(--shadow-sm); transition: var(--transition-base);"
-                                onclick="this.style.transform='scale(0.95)'"></button>
-                        <button style="width: 50px; height: 50px; border-radius: 12px; border: 2px solid transparent; 
-                                       background: linear-gradient(135deg, #e8eef5 0%, #f5f7fa 100%); cursor: pointer; 
-                                       box-shadow: var(--shadow-sm); transition: var(--transition-base);"
-                                onclick="this.style.border='2px solid var(--primary-color)'"></button>
-                        <button style="width: 50px; height: 50px; border-radius: 12px; border: 2px solid transparent; 
-                                       background: linear-gradient(135deg, #fecaca 0%, #dc2626 100%); cursor: pointer; 
-                                       box-shadow: var(--shadow-sm); transition: var(--transition-base);"
-                                onclick="this.style.border='2px solid var(--primary-color)'"></button>
-                    </div>
+                    <c:choose>
+                        <c:when test="${not empty product.color}">
+                            <%
+                                com.mobilestore.model.Product productModel = (com.mobilestore.model.Product) request.getAttribute("product");
+                                java.util.List<String> colors = ProductColorUtil.splitColors(productModel != null ? productModel.getColor() : null);
+                            %>
+                            <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                                <%
+                                    for (String colorLabel : colors) {
+                                        String cssColor = ProductColorUtil.resolveCssColor(colorLabel);
+                                        boolean unknownColor = "transparent".equals(cssColor);
+                                %>
+                                    <button type="button" class="product-color-option product-option-btn" data-option-group="color" data-option-value="<%= colorLabel %>" title="<%= colorLabel %>">
+                                        <div class="product-color-swatch" style="background: <%= cssColor %>; border: <%= unknownColor ? "1px solid #D1D5DB" : "1px solid rgba(0, 0, 0, 0.08)" %>;"></div>
+                                        <div class="product-color-name"><%= colorLabel %></div>
+                                    </button>
+                                <%
+                                    }
+                                %>
+                            </div>
+                        </c:when>
+                        <c:otherwise>
+                            <div style="color: var(--gray-500);">Chưa có thông tin màu sắc</div>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
 
-                <!-- Storage Selection (placeholder) -->
+                <!-- Storage Selection -->
                 <div style="margin-bottom: 2rem;">
-                    <div style="font-weight: 600; margin-bottom: 0.75rem;">Bộ nhớ:</div>
-                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                        <button class="btn btn-outline" style="border: 2px solid var(--primary-color); color: var(--primary-color);">
-                            128GB
-                        </button>
-                        <button class="btn btn-outline">256GB</button>
-                        <button class="btn btn-outline">512GB</button>
-                        <button class="btn btn-outline">1TB</button>
-                    </div>
+                    <div style="font-weight: 600; margin-bottom: 0.75rem;">Dung lượng:</div>
+                    <c:choose>
+                        <c:when test="${not empty product.capacity}">
+                            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                                <%
+                                    com.mobilestore.model.Product capacityProduct = (com.mobilestore.model.Product) request.getAttribute("product");
+                                    String capacityRaw = capacityProduct != null ? capacityProduct.getCapacity() : null;
+                                    if (capacityRaw != null) {
+                                        String[] capacities = capacityRaw.split(",");
+                                        for (String capacityLabelRaw : capacities) {
+                                            String capacityLabel = capacityLabelRaw != null ? capacityLabelRaw.trim() : "";
+                                            if (!capacityLabel.isEmpty()) {
+                                %>
+                                    <button type="button" class="product-option-btn" data-option-group="capacity" data-option-value="<%= capacityLabel %>" style="min-width: 90px; padding: 0.85rem 1rem; border-radius: 14px; border: 1px solid #E5E7EB; background: #F8FAFC; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; color: #111827;">
+                                        <%= capacityLabel %>
+                                    </button>
+                                <%
+                                            }
+                                        }
+                                    }
+                                %>
+                            </div>
+                        </c:when>
+                        <c:otherwise>
+                            <div style="color: var(--gray-500);">Chưa có thông tin dung lượng</div>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
 
                 <!-- Quantity Selector -->
@@ -172,9 +204,10 @@
                                     onmouseout="this.style.background='white'">
                                 <i class="bi bi-dash"></i>
                             </button>
-                            <input type="number" id="quantity" value="1" min="1" max="${product.stockQuantity}"
-                                   style="width: 80px; height: 40px; text-align: center; border: 1px solid var(--gray-300); 
-                                          border-radius: 8px; font-weight: 600; font-size: 1rem;">
+                            <input type="number" id="quantity" value="1" min="1" max="${product.stockQuantity}" class="quantity-input"
+                                style="width: 80px; height: 40px; text-align: center; padding: 0; line-height: 40px; 
+                                    border: 1px solid var(--gray-300); border-radius: 8px; font-weight: 600; 
+                                    font-size: 1rem; appearance: textfield; -moz-appearance: textfield;">
                             <button id="btn-increment" data-max-qty="${product.stockQuantity}"
                                     style="width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--gray-300); 
                                            background: white; cursor: pointer; display: flex; align-items: center; 
@@ -189,12 +222,14 @@
                 <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
                     <c:choose>
                         <c:when test="${product.stockQuantity > 0}">
+                            <input type="hidden" id="selected-color" value="">
+                            <input type="hidden" id="selected-capacity" value="">
                             <button id="btn-add-to-cart" data-product-id="${product.productId}" 
                                     class="btn btn-primary" 
                                     style="flex: 1; height: 56px; font-size: 1.1rem; font-weight: 600;">
                                 <i class="bi bi-cart-plus"></i> Thêm Vào Giỏ
                             </button>
-                            <button class="btn btn-success" 
+                            <button id="btn-buy-now" data-product-id="${product.productId}" class="btn btn-success" 
                                     style="flex: 1; height: 56px; font-size: 1.1rem; font-weight: 600;">
                                 <i class="bi bi-bag-check"></i> Mua Ngay
                             </button>
@@ -224,13 +259,7 @@
     <div style="margin-bottom: 4rem;">
         <ul class="nav nav-tabs" style="border-bottom: 2px solid var(--gray-200);">
             <li class="nav-item">
-                <a class="nav-link active" data-bs-toggle="tab" href="#description" 
-                   style="font-weight: 600; padding: 1rem 1.5rem;">
-                    <i class="bi bi-file-text"></i> Mô tả
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" data-bs-toggle="tab" href="#specs" 
+                <a class="nav-link active" data-bs-toggle="tab" href="#specs" 
                    style="font-weight: 600; padding: 1rem 1.5rem;">
                     <i class="bi bi-list-check"></i> Thông số kỹ thuật
                 </a>
@@ -244,102 +273,69 @@
         </ul>
 
         <div class="tab-content" style="background: white; padding: 2rem; border-radius: 0 0 12px 12px; box-shadow: var(--shadow-md);">
-            <!-- Description Tab -->
-            <div class="tab-pane fade show active" id="description">
-                <c:choose>
-                    <c:when test="${not empty product.description}">
-                        <p style="font-size: 1.05rem; line-height: 1.7; color: var(--gray-700);">
-                            ${product.description}
-                        </p>
-                    </c:when>
-                    <c:otherwise>
-                        <p style="color: var(--gray-500);">Chưa có mô tả chi tiết cho sản phẩm này.</p>
-                    </c:otherwise>
-                </c:choose>
+            <!-- Specifications Tab -->
+            <div class="tab-pane fade show active" id="specs">
+                <div style="max-width: 900px; margin: 0 auto;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                        <h4 style="margin: 0; font-size: 1.8rem; font-weight: 700; color: #1F2937;">Thông số kỹ thuật</h4>
+                        <a href="#reviews" data-bs-toggle="tab" class="nav-link" style="padding: 0; color: #2563EB; font-weight: 600; font-size: 0.95rem;">
+                            Xem tất cả <i class="bi bi-chevron-right" style="font-size: 0.85rem;"></i>
+                        </a>
+                    </div>
 
-                <h4 style="margin-top: 2rem; margin-bottom: 1rem;">Tính năng nổi bật</h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
-                    <div style="display: flex; gap: 1rem;">
-                        <i class="bi bi-phone" style="font-size: 2rem; color: var(--primary-color);"></i>
-                        <div>
-                            <div style="font-weight: 600; margin-bottom: 0.25rem;">Màn hình OLED</div>
-                            <div style="color: var(--gray-600); font-size: 0.875rem;">6.7 inch, Super Retina XDR</div>
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 1rem;">
-                        <i class="bi bi-camera" style="font-size: 2rem; color: var(--primary-color);"></i>
-                        <div>
-                            <div style="font-weight: 600; margin-bottom: 0.25rem;">Camera Pro</div>
-                            <div style="color: var(--gray-600); font-size: 0.875rem;">48MP chính, 12MP góc rộng</div>
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 1rem;">
-                        <i class="bi bi-battery-charging" style="font-size: 2rem; color: var(--primary-color);"></i>
-                        <div>
-                            <div style="font-weight: 600; margin-bottom: 0.25rem;">Pin khủng</div>
-                            <div style="color: var(--gray-600); font-size: 0.875rem;">Sử dụng cả ngày, sạc nhanh</div>
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 1rem;">
-                        <i class="bi bi-cpu" style="font-size: 2rem; color: var(--primary-color);"></i>
-                        <div>
-                            <div style="font-weight: 600; margin-bottom: 0.25rem;">Vi xử lý mạnh mẽ</div>
-                            <div style="color: var(--gray-600); font-size: 0.875rem;">Hiệu năng vượt trội</div>
-                        </div>
+                    <div style="border: 1px solid #D1D5DB; border-radius: 12px; overflow: hidden; background: #FFFFFF;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 1.02rem; color: #374151;">
+                            <tbody>
+                                <tr>
+                                    <th style="width: 31%; padding: 10px 14px; background: #F3F4F6; border-right: 1px solid #D1D5DB; border-bottom: 1px solid #D1D5DB; font-weight: 500; text-align: left;">Thương hiệu</th>
+                                    <td style="padding: 10px 14px; border-bottom: 1px solid #D1D5DB;">${product.brand}</td>
+                                </tr>
+                                <c:if test="${not empty product.model}">
+                                    <tr>
+                                        <th style="padding: 10px 14px; background: #F3F4F6; border-right: 1px solid #D1D5DB; border-bottom: 1px solid #D1D5DB; font-weight: 500; text-align: left;">Model</th>
+                                        <td style="padding: 10px 14px; border-bottom: 1px solid #D1D5DB;">${product.model}</td>
+                                    </tr>
+                                </c:if>
+                                <c:if test="${not empty product.categoryName}">
+                                    <tr>
+                                        <th style="padding: 10px 14px; background: #F3F4F6; border-right: 1px solid #D1D5DB; border-bottom: 1px solid #D1D5DB; font-weight: 500; text-align: left;">Danh mục</th>
+                                        <td style="padding: 10px 14px; border-bottom: 1px solid #D1D5DB;">${product.categoryName}</td>
+                                    </tr>
+                                </c:if>
+                                <c:if test="${not empty product.color}">
+                                    <tr>
+                                        <th style="padding: 10px 14px; background: #F3F4F6; border-right: 1px solid #D1D5DB; border-bottom: 1px solid #D1D5DB; font-weight: 500; text-align: left;">Màu sắc</th>
+                                        <td style="padding: 10px 14px; border-bottom: 1px solid #D1D5DB;">${product.color}</td>
+                                    </tr>
+                                </c:if>
+                                <tr>
+                                    <th style="padding: 10px 14px; background: #F3F4F6; border-right: 1px solid #D1D5DB; border-bottom: 1px solid #D1D5DB; font-weight: 500; text-align: left;">Dung lượng trong</th>
+                                    <td style="padding: 10px 14px; border-bottom: 1px solid #D1D5DB;"><c:choose><c:when test="${not empty product.capacity}">${product.capacity}</c:when><c:otherwise>Chưa có dữ liệu</c:otherwise></c:choose></td>
+                                </tr>
+                                <c:if test="${not empty product.description}">
+                                    <c:set var="normalizedDescription" value="${fn:replace(product.description, '&#13;', '')}" />
+                                    <c:set var="specLines" value="${fn:split(normalizedDescription, '&#10;')}" />
+                                    <c:forEach var="lineRaw" items="${specLines}">
+                                        <c:set var="line" value="${fn:trim(lineRaw)}" />
+                                        <c:if test="${not empty line}">
+                                            <c:set var="colonIndex" value="${fn:indexOf(line, ':')}" />
+                                            <c:if test="${colonIndex gt 0}">
+                                                <c:set var="specName" value="${fn:trim(fn:substring(line, 0, colonIndex))}" />
+                                                <c:set var="specValue" value="${fn:trim(fn:substring(line, colonIndex + 1, fn:length(line)))}" />
+                                                <c:if test="${not empty specName and not empty specValue}">
+                                                    <tr>
+                                                        <th style="padding: 10px 14px; background: #F3F4F6; border-right: 1px solid #D1D5DB; border-bottom: 1px solid #D1D5DB; font-weight: 500; text-align: left;">${specName}</th>
+                                                        <td style="padding: 10px 14px; border-bottom: 1px solid #D1D5DB; line-height: 1.45;">${specValue}</td>
+                                                    </tr>
+                                                </c:if>
+                                            </c:if>
+                                        </c:if>
+                                    </c:forEach>
+                                </c:if>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-            </div>
-
-            <!-- Specifications Tab -->
-            <div class="tab-pane fade" id="specs">
-                <table class="table">
-                    <tbody>
-                        <tr>
-                            <th style="width: 30%; color: var(--gray-600); font-weight: 600;">Thương hiệu</th>
-                            <td>${product.brand}</td>
-                        </tr>
-                        <c:if test="${not empty product.model}">
-                            <tr>
-                                <th style="color: var(--gray-600); font-weight: 600;">Model</th>
-                                <td>${product.model}</td>
-                            </tr>
-                        </c:if>
-                        <c:if test="${not empty product.categoryName}">
-                            <tr>
-                                <th style="color: var(--gray-600); font-weight: 600;">Danh mục</th>
-                                <td>${product.categoryName}</td>
-                            </tr>
-                        </c:if>
-                        <tr>
-                            <th style="color: var(--gray-600); font-weight: 600;">Màn hình</th>
-                            <td>6.7 inch, OLED, 120Hz</td>
-                        </tr>
-                        <tr>
-                            <th style="color: var(--gray-600); font-weight: 600;">Chip xử lý</th>
-                            <td>Snapdragon 8 Gen 2</td>
-                        </tr>
-                        <tr>
-                            <th style="color: var(--gray-600); font-weight: 600;">RAM</th>
-                            <td>8GB / 12GB</td>
-                        </tr>
-                        <tr>
-                            <th style="color: var(--gray-600); font-weight: 600;">Bộ nhớ trong</th>
-                            <td>128GB / 256GB / 512GB</td>
-                        </tr>
-                        <tr>
-                            <th style="color: var(--gray-600); font-weight: 600;">Camera sau</th>
-                            <td>Chính 48MP, Góc rộng 12MP, Tele 12MP</td>
-                        </tr>
-                        <tr>
-                            <th style="color: var(--gray-600); font-weight: 600;">Camera trước</th>
-                            <td>12MP</td>
-                        </tr>
-                        <tr>
-                            <th style="color: var(--gray-600); font-weight: 600;">Pin</th>
-                            <td>5000mAh, sạc nhanh 67W</td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
 
             <!-- Reviews Tab -->
@@ -548,26 +544,145 @@
 
 <script>
 var detailContextPath = '${pageContext.request.contextPath}';
+var selectedVariantState = {
+    color: '',
+    capacity: ''
+};
 
-function addToCartWithQuantity(productId) {
+function addVariantToCartWithQuantity(productId, redirectToCheckout) {
     var quantity = document.getElementById('quantity').value;
+    var selectedColor = selectedVariantState.color || (document.getElementById('selected-color') ? document.getElementById('selected-color').value : '');
+    var selectedCapacity = selectedVariantState.capacity || (document.getElementById('selected-capacity') ? document.getElementById('selected-capacity').value : '');
+
+    var payload = 'productId=' + encodeURIComponent(productId) +
+                  '&quantity=' + encodeURIComponent(quantity) +
+                  '&selectedColor=' + encodeURIComponent(selectedColor) +
+                  '&selectedCapacity=' + encodeURIComponent(selectedCapacity);
+
     fetch(detailContextPath + '/cart?action=add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'productId=' + productId + '&quantity=' + quantity
+        body: payload
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-        if (data.success) { alert('Đã thêm sản phẩm vào giỏ hàng!'); location.reload(); }
+        if (data.success) {
+            if (typeof updateCartBadge === 'function') {
+                updateCartBadge(data.cartCount || 0);
+            }
+            if (redirectToCheckout) {
+                window.location.href = detailContextPath + '/checkout';
+                return;
+            }
+            alert('Đã thêm sản phẩm vào giỏ hàng!');
+        }
         else alert('Có lỗi xảy ra: ' + data.message);
     })
     .catch(function() { alert('Có lỗi xảy ra khi thêm vào giỏ hàng'); });
+}
+
+function setSelectedOption(groupName, value) {
+    var normalizedValue = value || '';
+
+    document.querySelectorAll('.product-option-btn[data-option-group="' + groupName + '"]').forEach(function(btn) {
+        btn.classList.toggle('is-selected', btn.getAttribute('data-option-value') === normalizedValue);
+    });
+
+    if (groupName === 'color' && document.getElementById('selected-color')) {
+        document.getElementById('selected-color').value = normalizedValue;
+        selectedVariantState.color = normalizedValue;
+    }
+    if (groupName === 'capacity' && document.getElementById('selected-capacity')) {
+        document.getElementById('selected-capacity').value = normalizedValue;
+        selectedVariantState.capacity = normalizedValue;
+    }
+
+    updateActionButtonsState();
+}
+
+function updateActionButtonsState() {
+    var btnAddToCart = document.getElementById('btn-add-to-cart');
+    var btnBuyNow = document.getElementById('btn-buy-now');
+
+    var hasColorOptions = document.querySelectorAll('.product-option-btn[data-option-group="color"]').length > 0;
+    var hasCapacityOptions = document.querySelectorAll('.product-option-btn[data-option-group="capacity"]').length > 0;
+
+    var selectedColor = document.getElementById('selected-color') ? document.getElementById('selected-color').value.trim() : '';
+    var selectedCapacity = document.getElementById('selected-capacity') ? document.getElementById('selected-capacity').value.trim() : '';
+
+    var colorReady = !hasColorOptions || selectedColor.length > 0;
+    var capacityReady = !hasCapacityOptions || selectedCapacity.length > 0;
+    var isReady = colorReady && capacityReady;
+
+    [btnAddToCart, btnBuyNow].forEach(function(btn) {
+        if (!btn) return;
+        btn.disabled = !isReady;
+        btn.classList.toggle('is-disabled-state', !isReady);
+    });
+}
+
+function validateVariantSelectionOnSubmit() {
+    var hasColorOptions = document.querySelectorAll('.product-option-btn[data-option-group="color"]').length > 0;
+    var hasCapacityOptions = document.querySelectorAll('.product-option-btn[data-option-group="capacity"]').length > 0;
+    var selectedColor = (selectedVariantState.color || (document.getElementById('selected-color') ? document.getElementById('selected-color').value : '')).trim();
+    var selectedCapacity = (selectedVariantState.capacity || (document.getElementById('selected-capacity') ? document.getElementById('selected-capacity').value : '')).trim();
+
+    if (hasColorOptions && !selectedColor) {
+        alert('Vui lòng chọn màu sắc trước khi tiếp tục.');
+        return false;
+    }
+    if (hasCapacityOptions && !selectedCapacity) {
+        alert('Vui lòng chọn dung lượng trước khi tiếp tục.');
+        return false;
+    }
+    return true;
+}
+
+function decrementQuantity() {
+    var input = document.getElementById('quantity');
+    if (!input) return;
+    var current = parseInt(input.value || '1', 10);
+    if (current > 1) {
+        input.value = current - 1;
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     var btnDecrement = document.querySelector('button[onclick="decrementQuantity()"]') || document.getElementById('btn-decrement');
     var btnIncrement = document.getElementById('btn-increment');
     var btnAddToCart = document.getElementById('btn-add-to-cart');
+    var btnBuyNow = document.getElementById('btn-buy-now');
+
+    document.querySelectorAll('.product-option-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var groupName = this.getAttribute('data-option-group');
+            var value = this.getAttribute('data-option-value');
+            setSelectedOption(groupName, value);
+        });
+    });
+
+    var preselectedColorButton = document.querySelector('.product-option-btn[data-option-group="color"].is-selected');
+    if (preselectedColorButton) {
+        selectedVariantState.color = preselectedColorButton.getAttribute('data-option-value') || '';
+    }
+
+    var preselectedCapacityButton = document.querySelector('.product-option-btn[data-option-group="capacity"].is-selected');
+    if (preselectedCapacityButton) {
+        selectedVariantState.capacity = preselectedCapacityButton.getAttribute('data-option-value') || '';
+    }
+
+    updateActionButtonsState();
+
+    if (btnDecrement) {
+        btnDecrement.addEventListener('click', function() {
+            var input = document.getElementById('quantity');
+            if (!input) return;
+            var current = parseInt(input.value || '1', 10);
+            if (current > 1) {
+                input.value = current - 1;
+            }
+        });
+    }
 
     if (btnIncrement) {
         var maxQty = parseInt(btnIncrement.getAttribute('data-max-qty'));
@@ -580,10 +695,36 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (btnAddToCart) {
         btnAddToCart.addEventListener('click', function() {
-            addToCartWithQuantity(this.getAttribute('data-product-id'));
+            if (!validateVariantSelectionOnSubmit()) return;
+            addVariantToCartWithQuantity(this.getAttribute('data-product-id'), false);
+        });
+    }
+
+    if (btnBuyNow) {
+        btnBuyNow.addEventListener('click', function() {
+            if (!validateVariantSelectionOnSubmit()) return;
+            addVariantToCartWithQuantity(this.getAttribute('data-product-id'), true);
         });
     }
 });
 </script>
+
+<style>
+.product-option-btn {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.product-option-btn.is-selected {
+    border-color: #2563EB !important;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    background: rgba(37, 99, 235, 0.06) !important;
+}
+
+.is-disabled-state {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+</style>
 
 <jsp:include page="../common/footer.jsp"/>

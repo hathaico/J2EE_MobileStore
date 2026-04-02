@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
  * Session-based shopping cart
  */
 public class Cart {
-    private Map<Integer, CartItem> items; // Key: productId, Value: CartItem
+    private Map<String, CartItem> items; // Key: variant key, Value: CartItem
     
     public Cart() {
         this.items = new HashMap<>();
@@ -24,25 +24,37 @@ public class Cart {
      * @param quantity Quantity to add
      */
     public void addItem(Product product, int quantity) {
+        addItem(product, quantity, null, null);
+    }
+
+    /**
+     * Add product variant to cart
+     * @param product Product to add
+     * @param quantity Quantity to add
+     * @param selectedColor Selected color (optional)
+     * @param selectedCapacity Selected capacity (optional)
+     */
+    public void addItem(Product product, int quantity, String selectedColor, String selectedCapacity) {
         if (product == null || quantity <= 0) {
             return;
         }
-        
-        Integer productId = product.getProductId();
-        
-        if (items.containsKey(productId)) {
+
+        String itemKey = generateItemKey(product.getProductId(), selectedColor, selectedCapacity);
+
+        if (items.containsKey(itemKey)) {
             // Update quantity if product already exists
-            CartItem existingItem = items.get(productId);
+            CartItem existingItem = items.get(itemKey);
             int newQuantity = existingItem.getQuantity() + quantity;
-            
+
             // Check stock availability
             if (newQuantity <= product.getStockQuantity()) {
                 existingItem.setQuantity(newQuantity);
             }
         } else {
             // Add new cart item
-            CartItem newItem = new CartItem(product, quantity);
-            items.put(productId, newItem);
+            CartItem newItem = new CartItem(product, quantity, selectedColor, selectedCapacity);
+            newItem.setItemKey(itemKey);
+            items.put(itemKey, newItem);
         }
     }
     
@@ -52,12 +64,28 @@ public class Cart {
      * @param quantity New quantity
      */
     public void updateItem(int productId, int quantity) {
-        if (quantity <= 0) {
-            removeItem(productId);
+        CartItem item = getItem(productId);
+        if (item != null) {
+            updateItemByKey(item.getItemKey(), quantity);
+        }
+    }
+
+    /**
+     * Update item quantity by item key
+     * @param itemKey Variant item key
+     * @param quantity New quantity
+     */
+    public void updateItemByKey(String itemKey, int quantity) {
+        if (itemKey == null || itemKey.trim().isEmpty()) {
             return;
         }
-        
-        CartItem item = items.get(productId);
+
+        if (quantity <= 0) {
+            removeItemByKey(itemKey);
+            return;
+        }
+
+        CartItem item = items.get(itemKey);
         if (item != null) {
             // Check stock availability
             if (quantity <= item.getProduct().getStockQuantity()) {
@@ -71,7 +99,27 @@ public class Cart {
      * @param productId Product ID to remove
      */
     public void removeItem(int productId) {
-        items.remove(productId);
+        List<String> keysToRemove = new ArrayList<>();
+        for (Map.Entry<String, CartItem> entry : items.entrySet()) {
+            CartItem item = entry.getValue();
+            if (item != null && item.getProduct() != null && item.getProduct().getProductId() == productId) {
+                keysToRemove.add(entry.getKey());
+            }
+        }
+        for (String key : keysToRemove) {
+            items.remove(key);
+        }
+    }
+
+    /**
+     * Remove item from cart by key
+     * @param itemKey Item key to remove
+     */
+    public void removeItemByKey(String itemKey) {
+        if (itemKey == null || itemKey.trim().isEmpty()) {
+            return;
+        }
+        items.remove(itemKey);
     }
     
     /**
@@ -95,7 +143,98 @@ public class Cart {
      * @return CartItem or null if not found
      */
     public CartItem getItem(int productId) {
-        return items.get(productId);
+        for (CartItem item : items.values()) {
+            if (item != null && item.getProduct() != null && item.getProduct().getProductId() == productId) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Get cart item by product and variant
+     * @param productId Product ID
+     * @param selectedColor Selected color
+     * @param selectedCapacity Selected capacity
+     * @return CartItem or null if not found
+     */
+    public CartItem getItem(int productId, String selectedColor, String selectedCapacity) {
+        String itemKey = generateItemKey(productId, selectedColor, selectedCapacity);
+        return items.get(itemKey);
+    }
+
+    /**
+     * Get cart item by item key
+     * @param itemKey Item key
+     * @return CartItem or null if not found
+     */
+    public CartItem getItemByKey(String itemKey) {
+        if (itemKey == null || itemKey.trim().isEmpty()) {
+            return null;
+        }
+        return items.get(itemKey);
+    }
+
+    /**
+     * Get the first cart item for a product that does not yet have a variant selection.
+     * @param productId Product ID
+     * @return Unselected cart item or null
+     */
+    public CartItem getUnselectedItemByProductId(int productId) {
+        for (CartItem item : items.values()) {
+            if (item != null
+                    && item.getProduct() != null
+                    && item.getProduct().getProductId() == productId
+                    && !item.hasVariantSelection()) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Update an existing item to a selected variant while preserving the cart entry.
+     * @param item Item to retag
+     * @param selectedColor Selected color
+     * @param selectedCapacity Selected capacity
+     */
+    public void retagItemVariant(CartItem item, String selectedColor, String selectedCapacity) {
+        if (item == null) {
+            return;
+        }
+
+        String currentKey = findItemKey(item);
+        if (currentKey == null) {
+            currentKey = item.getItemKey();
+        }
+
+        if (currentKey != null) {
+            items.remove(currentKey);
+        }
+
+        item.setSelectedColor(selectedColor);
+        item.setSelectedCapacity(selectedCapacity);
+
+        String newKey = generateItemKey(
+                item.getProduct() != null ? item.getProduct().getProductId() : 0,
+                selectedColor,
+                selectedCapacity
+        );
+        item.setItemKey(newKey);
+        items.put(newKey, item);
+    }
+
+    private String findItemKey(CartItem target) {
+        if (target == null) {
+            return null;
+        }
+
+        for (Map.Entry<String, CartItem> entry : items.entrySet()) {
+            if (entry.getValue() == target) {
+                return entry.getKey();
+            }
+        }
+        return null;
     }
     
     /**
@@ -168,5 +307,17 @@ public class Cart {
                 "items=" + items.size() +
                 ", total=" + getFormattedTotal() +
                 '}';
+    }
+
+    public static String generateItemKey(int productId, String selectedColor, String selectedCapacity) {
+        return productId + "|" + normalizeVariantValue(selectedColor) + "|" + normalizeVariantValue(selectedCapacity);
+    }
+
+    private static String normalizeVariantValue(String value) {
+        if (value == null) {
+            return "";
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? "" : trimmed.toLowerCase();
     }
 }

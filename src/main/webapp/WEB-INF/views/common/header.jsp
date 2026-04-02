@@ -38,14 +38,222 @@
         .ms-search input { width: 100%; padding: 10px 16px 10px 42px; border: 2px solid #E5E7EB; border-radius: 999px; font-size: 0.9rem; outline: none; transition: all 0.2s; background: #F9FAFB; }
         .ms-search input:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); background: #fff; }
         .ms-search .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #9CA3AF; font-size: 1rem; }
+
+        /* Notification Container */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 400px;
+            pointer-events: none;
+        }
+
+        /* Notification Card */
+        .notification {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+            border-left: 4px solid;
+            animation: slideInRight 0.3s ease-out;
+            pointer-events: auto;
+            min-height: 64px;
+        }
+
+        .notification.success {
+            border-left-color: #10B981;
+            background: linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%);
+        }
+
+        .notification.error {
+            border-left-color: #EF4444;
+            background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
+        }
+
+        .notification.info {
+            border-left-color: #2563EB;
+            background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+        }
+
+        .notification.warning {
+            border-left-color: #F59E0B;
+            background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+        }
+
+        .notification-icon {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            margin-top: 2px;
+        }
+
+        .notification.success .notification-icon {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10B981;
+        }
+
+        .notification.error .notification-icon {
+            background: rgba(239, 68, 68, 0.1);
+            color: #EF4444;
+        }
+
+        .notification.info .notification-icon {
+            background: rgba(37, 99, 235, 0.1);
+            color: #2563EB;
+        }
+
+        .notification.warning .notification-icon {
+            background: rgba(245, 158, 11, 0.1);
+            color: #F59E0B;
+        }
+
+        .notification-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #1F2937;
+        }
+
+        .notification.success .notification-title { color: #047857; }
+        .notification.error .notification-title { color: #991B1B; }
+        .notification.info .notification-title { color: #1e40af; }
+        .notification.warning .notification-title { color: #92400E; }
+
+        .notification-message {
+            font-size: 0.85rem;
+            color: #6B7280;
+            line-height: 1.4;
+        }
+
+        .notification.success .notification-message { color: #065F46; }
+        .notification.error .notification-message { color: #7F1D1D; }
+        .notification.info .notification-message { color: #1e40af; }
+        .notification.warning .notification-message { color: #78350F; }
+
+        .notification-close {
+            flex-shrink: 0;
+            background: none;
+            border: none;
+            color: #9CA3AF;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0;
+            margin-top: 2px;
+            transition: color 0.2s;
+        }
+
+        .notification-close:hover {
+            color: #1F2937;
+        }
+
+        /* Progress Bar */
+        .notification-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            border-radius: 0 0 12px 12px;
+            animation: progress 5s linear;
+        }
+
+        .notification.success .notification-progress { background: #10B981; }
+        .notification.error .notification-progress { background: #EF4444; }
+        .notification.info .notification-progress { background: #2563EB; }
+        .notification.warning .notification-progress { background: #F59E0B; }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(400px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(400px);
+            }
+        }
+
+        @keyframes progress {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+
+        .notification.removing {
+            animation: slideOutRight 0.3s ease-out forwards;
+        }
+
         @media (max-width: 991.98px) {
             .ms-search { display: none !important; }
             .ms-navbar .navbar-collapse { padding: 16px 0; }
             .ms-navbar .nav-link { padding: 12px 16px; }
+            
+            .notification-container {
+                left: 12px;
+                right: 12px;
+                max-width: none;
+                top: 70px;
+            }
+
+            .notification {
+                border-radius: 10px;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .notification {
+                gap: 10px;
+                padding: 12px 14px;
+                min-height: 56px;
+            }
+
+            .notification-icon {
+                width: 24px;
+                height: 24px;
+                font-size: 0.9rem;
+            }
+
+            .notification-title {
+                font-size: 0.9rem;
+            }
+
+            .notification-message {
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Notification Container -->
+    <div class="notification-container" id="notificationContainer"></div>
+
     <!-- Modern Navbar -->
     <nav class="ms-navbar navbar navbar-expand-lg">
         <div class="container" style="max-width: 1200px; padding: 10px 16px;">
@@ -133,9 +341,9 @@
                     <!-- Shopping Cart -->
                     <a href="${pageContext.request.contextPath}/cart" class="ms-nav-icon" title="Giỏ hàng">
                         <i class="bi bi-cart3"></i>
-                        <c:if test="${not empty sessionScope.cartCount && sessionScope.cartCount > 0}">
-                            <span class="ms-badge">${sessionScope.cartCount}</span>
-                        </c:if>
+                        <span id="cart-count-badge" class="ms-badge cart-badge" style="display: ${not empty sessionScope.cartCount && sessionScope.cartCount > 0 ? 'flex' : 'none'};">
+                            ${not empty sessionScope.cartCount ? sessionScope.cartCount : 0}
+                        </span>
                     </a>
                     
                     <!-- User Account -->

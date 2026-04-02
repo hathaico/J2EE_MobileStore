@@ -47,8 +47,31 @@ public class AdminOrderController extends HttpServlet {
             throws ServletException, IOException {
         String action = request.getParameter("action");
         
-        // Đã loại bỏ các hàm cập nhật trạng thái đơn hàng và thanh toán.
-        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid action");
+        if ("confirm".equals(action)) {
+            confirmOrder(request, response);
+        } else {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid action");
+        }
+    }
+    
+    /**
+     * Confirm order
+     */
+    private void confirmOrder(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        try {
+            int orderId = Integer.parseInt(request.getParameter("id"));
+            
+            boolean success = orderService.confirmOrder(orderId);
+            
+            if (success) {
+                response.sendRedirect(request.getContextPath() + "/admin/orders?success=Đã xác nhận đơn hàng thành công!");
+            } else {
+                response.sendRedirect(request.getContextPath() + "/admin/orders?error=Không thể xác nhận đơn hàng này!");
+            }
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/admin/orders?error=ID đơn hàng không hợp lệ!");
+        }
     }
     
     /**

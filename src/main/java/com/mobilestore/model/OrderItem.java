@@ -14,6 +14,8 @@ public class OrderItem {
     private BigDecimal price;
     private Integer quantity;
     private BigDecimal subtotal;
+    private String selectedColor;
+    private String selectedCapacity;
     
     // Product reference (optional, for display)
     private Product product;
@@ -87,6 +89,22 @@ public class OrderItem {
     public void setSubtotal(BigDecimal subtotal) {
         this.subtotal = subtotal;
     }
+
+    public String getSelectedColor() {
+        return selectedColor;
+    }
+
+    public void setSelectedColor(String selectedColor) {
+        this.selectedColor = selectedColor;
+    }
+
+    public String getSelectedCapacity() {
+        return selectedCapacity;
+    }
+
+    public void setSelectedCapacity(String selectedCapacity) {
+        this.selectedCapacity = selectedCapacity;
+    }
     
     public Product getProduct() {
         return product;
@@ -130,6 +148,8 @@ public class OrderItem {
                 ", price=" + price +
                 ", quantity=" + quantity +
                 ", subtotal=" + subtotal +
+                ", selectedColor='" + selectedColor + '\'' +
+                ", selectedCapacity='" + selectedCapacity + '\'' +
                 '}';
     }
 }

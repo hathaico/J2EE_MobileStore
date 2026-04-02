@@ -58,8 +58,8 @@ public class DashboardService {
         int delivered = 0;
         
         for (Order order : allOrders) {
-            // Add to revenue if not cancelled
-            if (!"CANCELLED".equals(order.getStatus()) && order.getTotalAmount() != null) {
+            // Add to revenue only if confirmed
+            if ("CONFIRMED".equals(order.getStatus()) && order.getTotalAmount() != null) {
                 totalRevenue = totalRevenue.add(order.getTotalAmount());
             }
             
@@ -96,7 +96,7 @@ public class DashboardService {
         for (Order order : allOrders) {
             if (order.getCreatedAt() != null && order.getCreatedAt().isAfter(todayStart)) {
                 todayOrders++;
-                if (!"CANCELLED".equals(order.getStatus()) && order.getTotalAmount() != null) {
+                if ("CONFIRMED".equals(order.getStatus()) && order.getTotalAmount() != null) {
                     todayRevenue = todayRevenue.add(order.getTotalAmount());
                 }
             }

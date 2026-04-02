@@ -12,6 +12,8 @@ public class Product {
     private String productName;
     private String brand;
     private String model;
+    private String color;
+    private String capacity;
     private BigDecimal price;
     private Integer stockQuantity;
     private Integer categoryId;
@@ -109,6 +111,22 @@ public class Product {
         this.description = description;
     }
     
+    public String getColor() {
+        return color;
+    }
+    
+    public void setColor(String color) {
+        this.color = color;
+    }
+    
+    public String getCapacity() {
+        return capacity;
+    }
+    
+    public void setCapacity(String capacity) {
+        this.capacity = capacity;
+    }
+    
     public String getImageUrl() {
         return imageUrl;
     }
@@ -171,6 +189,9 @@ public class Product {
                 "productId=" + productId +
                 ", productName='" + productName + '\'' +
                 ", brand='" + brand + '\'' +
+                ", model='" + model + '\'' +
+                ", color='" + color + '\'' +
+                ", capacity='" + capacity + '\'' +
                 ", price=" + price +
                 ", stockQuantity=" + stockQuantity +
                 ", categoryId=" + categoryId +

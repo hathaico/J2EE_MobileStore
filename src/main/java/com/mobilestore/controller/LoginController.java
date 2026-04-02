@@ -1,6 +1,7 @@
 package com.mobilestore.controller;
 
 import com.mobilestore.model.User;
+import com.mobilestore.service.CartService;
 import com.mobilestore.service.UserService;
 
 import jakarta.servlet.ServletException;
@@ -18,10 +19,12 @@ import java.io.IOException;
 @WebServlet("/login")
 public class LoginController extends HttpServlet {
     private UserService userService;
+    private CartService cartService;
     
     @Override
     public void init() throws ServletException {
         userService = new UserService();
+        cartService = new CartService();
     }
     
     /**
@@ -72,6 +75,7 @@ public class LoginController extends HttpServlet {
             // Login successful
             HttpSession session = request.getSession(true);
             session.setAttribute("user", user);
+            cartService.attachCustomerCart(session);
             
             // Set session timeout (30 minutes)
             session.setMaxInactiveInterval(30 * 60);

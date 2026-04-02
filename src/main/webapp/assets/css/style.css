@@ -305,20 +305,60 @@ img {
 /* ============ Product Cards ============ */
 .product-card {
     background: var(--white);
-    border-radius: var(--radius-lg);
+    border-radius: 22px;
     overflow: hidden;
-    transition: all var(--transition-base);
-    border: 1px solid var(--border-color);
+    transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
+    border: 1px solid rgba(229, 231, 235, 0.9);
     height: 100%;
     display: flex;
     flex-direction: column;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-sm);
+    position: relative;
 }
 
 .product-card:hover {
-    transform: translateY(-8px);
+    transform: translateY(-6px);
     box-shadow: var(--shadow-xl);
-    border-color: var(--primary-color);
+    border-color: rgba(37, 99, 235, 0.35);
+}
+
+.product-color-swatch {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid rgba(229, 231, 235, 1);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.03);
+    flex-shrink: 0;
+    background-size: cover;
+    background-position: center;
+}
+
+.product-color-option {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    background: #F8FAFC;
+    border-radius: 14px;
+    padding: 0.65rem 0.9rem;
+    border: 1px solid rgba(229, 231, 235, 1);
+}
+
+.product-color-name {
+    color: #111827;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.admin-color-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.admin-color-preview-label {
+    color: #475569;
+    font-size: 0.9rem;
 }
 
 .product-card-image {
@@ -525,6 +565,7 @@ img {
 }
 
 .brand-card {
+    --brand-accent: #2563eb;
     background: var(--white);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
@@ -760,10 +801,28 @@ img {
 
 .quantity-input {
     width: 50px;
-    text-align: center;
+    height: 32px;
+    box-sizing: border-box;
+    text-align: center !important;
     border: 1px solid var(--gray-300);
     border-radius: var(--radius-md);
-    padding: var(--spacing-sm);
+    padding: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    line-height: 32px !important;
+    font-weight: 600;
+    -moz-appearance: textfield;
+    -webkit-appearance: none;
+    appearance: textfield;
+    font-family: inherit;
+    text-indent: 0;
+    letter-spacing: 0;
+}
+
+.quantity-input::-webkit-inner-spin-button,
+.quantity-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 /* ============ Cart Summary ============ */
@@ -1471,25 +1530,25 @@ img {
 /* ============ Product Card Image (listing specific) ============ */
 .product-listing-page .product-card-image {
     padding-top: 0;
-    height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    height: 220px;
+    overflow: hidden;
 }
 
 .product-listing-page .product-card-image img {
-    position: static;
-    transform: none;
-    width: auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
     height: 100%;
-    max-width: 100%;
-    object-fit: contain;
-    padding: 16px;
+    object-fit: cover;
+    object-position: center;
+    transform: none;
+    padding: 0;
     transition: transform var(--transition-slow);
 }
 
 .product-listing-page .product-card:hover .product-card-image img {
-    transform: scale(1.08);
+    transform: scale(1.06);
 }
 
 /* ============ Product Badge Variants ============ */
@@ -1645,10 +1704,31 @@ img {
     align-items: center;
     gap: 8px;
     box-shadow: var(--shadow-xl);
+    max-width: min(420px, calc(100vw - 48px));
 }
 
 .toast-notification.show {
     transform: translateX(0);
+}
+
+.toast-notification i {
+    font-size: 1.1rem;
+}
+
+.toast-notification span {
+    display: inline-block;
+    line-height: 1.4;
+}
+
+.toast-notification .toast-close {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0;
+    margin-left: auto;
+    line-height: 1;
 }
 
 .toast-success {
@@ -1657,6 +1737,14 @@ img {
 
 .toast-error {
     background: var(--danger-color);
+}
+
+.toast-info {
+    background: var(--primary-color, #2563eb);
+}
+
+.toast-warning {
+    background: var(--warning-color, #f59e0b);
 }
 
 /* ============ Filter Overlay (Mobile) ============ */
@@ -1684,7 +1772,9 @@ img {
 
 /* Brand Section (Homepage) */
 .brand-section {
-    background: var(--gray-50);
+    background:
+        radial-gradient(1200px 220px at 50% -120px, rgba(37, 99, 235, 0.12), transparent 70%),
+        linear-gradient(180deg, #f8fbff 0%, #f4f7fb 100%);
     padding: 60px 0;
 }
 
@@ -1704,29 +1794,134 @@ img {
 /* Brand Card — compact logo chip */
 .brand-card {
     background: var(--white);
-    border-radius: 10px;
-    padding: 12px 14px;
+    border-radius: 12px;
+    padding: 14px 16px;
     text-align: center;
-    border: 1.5px solid var(--border-color);
+    border: 1.5px solid #d9e2ef;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     text-decoration: none;
+    min-height: 48px;
+    position: relative;
+    overflow: hidden;
 }
 
 .brand-card:hover {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 24px rgba(37, 99, 235, 0.16);
     transform: translateY(-3px);
-    border-color: var(--primary-color);
-    background: #FAFBFF;
+    border-color: var(--brand-accent);
+    background: #ffffff;
 }
 
 .brand-card:hover .brand-logo {
     opacity: 1;
     transform: scale(1.06);
+}
+
+.brand-wordmark {
+    display: inline-block;
+    color: #1f2937;
+    font-family: 'Montserrat', 'Noto Sans', sans-serif;
+    font-size: 0.98rem;
+    font-weight: 650;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    text-transform: none;
+    transition: color 0.25s ease, transform 0.25s ease, letter-spacing 0.25s ease, text-shadow 0.25s ease;
+}
+
+.brand-card:hover .brand-wordmark {
+    transform: scale(1.02);
+    letter-spacing: 0.095em;
+    text-shadow: 0 1px 10px rgba(37, 99, 235, 0.12);
+}
+
+.brand-wordmark--apple {
+    color: #4b5563;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+}
+
+.brand-wordmark--samsung {
+    color: #1428a0;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+}
+
+.brand-wordmark--xiaomi {
+    color: #ff6900;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+.brand-wordmark--oppo {
+    color: #1a8a3e;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+}
+
+.brand-wordmark--vivo {
+    color: #456fff;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+}
+
+.brand-wordmark--realme {
+    color: #d4a200;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+.brand-wordmark--huawei {
+    color: #cf0a2c;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+}
+
+.brand-wordmark--oneplus {
+    color: #f5010c;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+.brand-wordmark--google {
+    color: #4285f4;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+
+.brand-wordmark--motorola {
+    color: #5c2d91;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+}
+
+.brand-card--apple { --brand-accent: #6b7280; }
+.brand-card--samsung { --brand-accent: #1428a0; }
+.brand-card--xiaomi { --brand-accent: #ff6900; }
+.brand-card--oppo { --brand-accent: #1a8a3e; }
+.brand-card--vivo { --brand-accent: #456fff; }
+.brand-card--realme { --brand-accent: #d4a200; }
+.brand-card--huawei { --brand-accent: #cf0a2c; }
+.brand-card--oneplus { --brand-accent: #f5010c; }
+.brand-card--google { --brand-accent: #4285f4; }
+.brand-card--motorola { --brand-accent: #5c2d91; }
+
+.brand-card:hover .brand-wordmark--apple,
+.brand-card:hover .brand-wordmark--samsung,
+.brand-card:hover .brand-wordmark--xiaomi,
+.brand-card:hover .brand-wordmark--oppo,
+.brand-card:hover .brand-wordmark--vivo,
+.brand-card:hover .brand-wordmark--realme,
+.brand-card:hover .brand-wordmark--huawei,
+.brand-card:hover .brand-wordmark--oneplus,
+.brand-card:hover .brand-wordmark--google,
+.brand-card:hover .brand-wordmark--motorola {
+    color: var(--brand-accent);
 }
 
 /* Brand Logo — official wordmarks/icons */
@@ -1809,34 +2004,44 @@ img {
         max-height: 22px;
         max-width: 72px;
     }
+    .brand-grid-home .brand-wordmark {
+        font-size: 0.8rem;
+        letter-spacing: 0.06em;
+    }
 }
 
 /* Brand Filter (Sidebar) */
 .brand-filter-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    gap: 10px;
 }
 
 .brand-filter-item {
+    --brand-accent: #2563eb;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    padding: 10px 6px;
-    border-radius: 10px;
-    border: 2px solid var(--border-color);
-    background: var(--white);
+    gap: 0;
+    min-height: 46px;
+    padding: 10px 8px;
+    border-radius: 12px;
+    border: 1.5px solid #d9e2ef;
+    background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
     cursor: pointer;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
     transition: all 0.25s ease;
     text-align: center;
 }
 
 .brand-filter-item:hover,
-.brand-filter-item.active {
-    border-color: var(--primary-color);
-    background: #F0F5FF;
+.brand-filter-item.active,
+.brand-filter-item.selected {
+    border-color: var(--brand-accent);
+    background: linear-gradient(180deg, #ffffff 0%, #f4f8ff 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.09);
 }
 
 .brand-filter-item:hover .brand-icon,
@@ -1851,16 +2056,43 @@ img {
     margin-bottom: 0;
 }
 
-.brand-filter-item .brand-name {
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--text-secondary);
+.brand-filter-item .brand-wordmark {
+    font-size: 0.9rem;
+    line-height: 1;
+    transition: color 0.2s ease, transform 0.2s ease, letter-spacing 0.2s ease;
 }
 
-.brand-filter-item:hover .brand-name,
-.brand-filter-item.active .brand-name {
-    color: var(--primary-color);
-    font-weight: 600;
+.brand-filter-item:hover .brand-wordmark,
+.brand-filter-item.active .brand-wordmark,
+.brand-filter-item.selected .brand-wordmark {
+    color: var(--brand-accent);
+    transform: scale(1.02);
+    letter-spacing: 0.09em;
+}
+
+.brand-filter-item--apple { --brand-accent: #6b7280; }
+.brand-filter-item--samsung { --brand-accent: #1428a0; }
+.brand-filter-item--xiaomi { --brand-accent: #ff6900; }
+.brand-filter-item--oppo { --brand-accent: #1a8a3e; }
+.brand-filter-item--vivo { --brand-accent: #456fff; }
+.brand-filter-item--realme { --brand-accent: #d4a200; }
+.brand-filter-item--huawei { --brand-accent: #cf0a2c; }
+.brand-filter-item--oneplus { --brand-accent: #f5010c; }
+.brand-filter-item--google { --brand-accent: #4285f4; }
+.brand-filter-item--motorola { --brand-accent: #5c2d91; }
+
+@media (max-width: 575.98px) {
+    .brand-filter-grid {
+        gap: 8px;
+    }
+    .brand-filter-item {
+        min-height: 42px;
+        padding: 8px 6px;
+    }
+    .brand-filter-item .brand-wordmark {
+        font-size: 0.78rem;
+        letter-spacing: 0.05em;
+    }
 }
 
 /* Brand Badge (Product Cards) */
@@ -1900,4 +2132,129 @@ img {
     .brand-filter-grid {
         grid-template-columns: repeat(3, 1fr);
     }
+}
+
+/* ============ Storefront product list (list.jsp) — ảnh lấp đầy khung ============ */
+.store-product-card__media {
+    position: relative;
+    width: 100%;
+    min-height: 260px;
+    background: linear-gradient(160deg, #f1f5f9 0%, #e8ecf4 100%);
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+}
+.store-product-card__media-link {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: block;
+}
+.store-product-card__media-link img {
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    transition: transform 0.45s ease;
+}
+.product-card:hover .store-product-card__media-link img {
+    transform: scale(1.06);
+}
+.store-product-card__placeholder {
+    width: 100%;
+    height: 100%;
+    min-height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+}
+.store-product-card__placeholder i {
+    font-size: 4.5rem;
+    color: #cbd5e1;
+}
+.store-product-card__badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    padding: 5px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 9999px;
+    z-index: 4;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+}
+.store-product-card__badge--out {
+    background: #4b5563;
+    color: #fff;
+}
+.store-product-card__badge--low {
+    background: #f59e0b;
+    color: #111827;
+}
+.store-product-card__overlay-actions {
+    z-index: 4;
+}
+.store-product-card__overlay-actions a,
+.store-product-card__overlay-actions button {
+    pointer-events: auto;
+}
+
+/* ============ Product detail gallery — ảnh lấp đầy khung ============ */
+.product-detail-gallery {
+    margin-bottom: 1rem;
+}
+.product-detail-gallery__frame {
+    position: relative;
+    width: 100%;
+    max-height: min(560px, 90vh);
+    min-height: 420px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%);
+    box-shadow: var(--shadow-md);
+}
+.product-detail-gallery__frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    max-width: none;
+}
+.product-detail-gallery__frame--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 360px;
+}
+.product-detail-gallery__frame--empty i {
+    font-size: 8rem;
+    color: var(--gray-300);
+}
+@media (max-width: 991.98px) {
+    .product-detail-gallery__frame {
+        max-height: none;
+        aspect-ratio: 1;
+    }
+}
+
+/* Giỏ hàng — thumbnail vuông, ảnh cover */
+.cart-item-thumb {
+    background: var(--gray-100);
+    border-radius: 12px;
+    overflow: hidden;
+    aspect-ratio: 1;
+    width: 100%;
+    max-width: 120px;
+    margin: 0 auto;
+}
+.cart-item-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
 }

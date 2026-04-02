@@ -119,7 +119,7 @@ public class ProductDAO extends BaseDAO {
         List<Product> products = new ArrayList<>();
         String sql = "SELECT p.*, c.category_name FROM products p " +
                     "LEFT JOIN categories c ON p.category_id = c.category_id " +
-                    "WHERE p.category_id = ? " +
+                    "WHERE p.category_id = ? AND p.is_active = TRUE " +
                     "ORDER BY p.product_name";
         
         Connection conn = null;
@@ -154,7 +154,7 @@ public class ProductDAO extends BaseDAO {
         List<Product> products = new ArrayList<>();
         String sql = "SELECT p.*, c.category_name FROM products p " +
                     "LEFT JOIN categories c ON p.category_id = c.category_id " +
-                    "WHERE p.product_name LIKE ? OR p.brand LIKE ? " +
+                    "WHERE p.is_active = TRUE AND (p.product_name LIKE ? OR p.brand LIKE ?) " +
                     "ORDER BY p.product_name";
         
         Connection conn = null;
@@ -192,6 +192,7 @@ public class ProductDAO extends BaseDAO {
         List<Product> products = new ArrayList<>();
         String sql = "SELECT p.*, c.category_name FROM products p " +
                     "LEFT JOIN categories c ON p.category_id = c.category_id " +
+                    "WHERE p.is_active = TRUE " +
                     "ORDER BY p.created_at DESC LIMIT ? OFFSET ?";
         
         Connection conn = null;
@@ -223,7 +224,7 @@ public class ProductDAO extends BaseDAO {
      * @return Total number of products
      */
     public int getTotalProductCount() {
-        String sql = "SELECT COUNT(*) FROM products";
+        String sql = "SELECT COUNT(*) FROM products WHERE is_active = TRUE";
         
         Connection conn = null;
         PreparedStatement stmt = null;
@@ -253,8 +254,8 @@ public class ProductDAO extends BaseDAO {
      * @return Generated product ID, or -1 if failed
      */
     public int createProduct(Product product) {
-        String sql = "INSERT INTO products (product_name, brand, model, price, stock_quantity, " +
-                    "category_id, description, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO products (product_name, brand, model, color, capacity, price, stock_quantity, " +
+                    "category_id, description, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         Connection conn = null;
         PreparedStatement stmt = null;
@@ -266,11 +267,13 @@ public class ProductDAO extends BaseDAO {
             stmt.setString(1, product.getProductName());
             stmt.setString(2, product.getBrand());
             stmt.setString(3, product.getModel());
-            stmt.setBigDecimal(4, product.getPrice());
-            stmt.setInt(5, product.getStockQuantity());
-            stmt.setObject(6, product.getCategoryId());
-            stmt.setString(7, product.getDescription());
-            stmt.setString(8, product.getImageUrl());
+            stmt.setString(4, product.getColor());
+            stmt.setString(5, product.getCapacity());
+            stmt.setBigDecimal(6, product.getPrice());
+            stmt.setInt(7, product.getStockQuantity());
+            stmt.setObject(8, product.getCategoryId());
+            stmt.setString(9, product.getDescription());
+            stmt.setString(10, product.getImageUrl());
             
             int affectedRows = stmt.executeUpdate();
             
@@ -296,7 +299,7 @@ public class ProductDAO extends BaseDAO {
      * @return true if successful, false otherwise
      */
     public boolean updateProduct(Product product) {
-        String sql = "UPDATE products SET product_name = ?, brand = ?, model = ?, price = ?, " +
+        String sql = "UPDATE products SET product_name = ?, brand = ?, model = ?, color = ?, capacity = ?, price = ?, " +
                     "stock_quantity = ?, category_id = ?, description = ?, image_url = ? " +
                     "WHERE product_id = ?";
         
@@ -305,6 +308,8 @@ public class ProductDAO extends BaseDAO {
                 product.getProductName(),
                 product.getBrand(),
                 product.getModel(),
+                product.getColor(),
+                product.getCapacity(),
                 product.getPrice(),
                 product.getStockQuantity(),
                 product.getCategoryId(),
@@ -426,6 +431,8 @@ public class ProductDAO extends BaseDAO {
         product.setCategoryId((Integer) rs.getObject("category_id"));
         product.setCategoryName(rs.getString("category_name"));
         product.setDescription(rs.getString("description"));
+        product.setColor(rs.getString("color"));
+        product.setCapacity(rs.getString("capacity"));
         product.setImageUrl(rs.getString("image_url"));
         product.setIsActive(rs.getBoolean("is_active"));
         
@@ -441,4 +448,31 @@ public class ProductDAO extends BaseDAO {
         
         return product;
     }
+
+    /**
+     * Get distinct brand names from products table
+     * @return List of brand name strings
+     */
+    public java.util.List<String> getDistinctBrands() {
+        java.util.List<String> brands = new java.util.ArrayList<>();
+        String sql = "SELECT DISTINCT brand FROM products WHERE brand IS NOT NULL AND TRIM(brand) <> '' ORDER BY brand";
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        try {
+            conn = getConnection();
+            stmt = conn.prepareStatement(sql);
+            rs = stmt.executeQuery();
+            while (rs.next()) {
+                brands.add(rs.getString(1));
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting distinct brands: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            closeResources(conn, stmt, rs);
+        }
+        return brands;
+    }
 }
+

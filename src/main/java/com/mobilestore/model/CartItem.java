@@ -9,6 +9,9 @@ import java.math.BigDecimal;
 public class CartItem {
     private Product product;
     private Integer quantity;
+    private String selectedColor;
+    private String selectedCapacity;
+    private String itemKey;
     
     public CartItem() {
     }
@@ -16,6 +19,13 @@ public class CartItem {
     public CartItem(Product product, Integer quantity) {
         this.product = product;
         this.quantity = quantity;
+    }
+
+    public CartItem(Product product, Integer quantity, String selectedColor, String selectedCapacity) {
+        this.product = product;
+        this.quantity = quantity;
+        this.selectedColor = normalize(selectedColor);
+        this.selectedCapacity = normalize(selectedCapacity);
     }
     
     // Getters and Setters
@@ -33,6 +43,30 @@ public class CartItem {
     
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
+    }
+
+    public String getSelectedColor() {
+        return selectedColor;
+    }
+
+    public void setSelectedColor(String selectedColor) {
+        this.selectedColor = normalize(selectedColor);
+    }
+
+    public String getSelectedCapacity() {
+        return selectedCapacity;
+    }
+
+    public void setSelectedCapacity(String selectedCapacity) {
+        this.selectedCapacity = normalize(selectedCapacity);
+    }
+
+    public String getItemKey() {
+        return itemKey;
+    }
+
+    public void setItemKey(String itemKey) {
+        this.itemKey = itemKey;
     }
     
     /**
@@ -65,12 +99,27 @@ public class CartItem {
     public String getFormattedTotal() {
         return String.format("%,d ₫", getTotal().longValue());
     }
+
+    public boolean hasVariantSelection() {
+        return (selectedColor != null && !selectedColor.isEmpty()) ||
+               (selectedCapacity != null && !selectedCapacity.isEmpty());
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
     
     @Override
     public String toString() {
         return "CartItem{" +
                 "product=" + (product != null ? product.getProductName() : "null") +
                 ", quantity=" + quantity +
+            ", selectedColor='" + selectedColor + '\'' +
+            ", selectedCapacity='" + selectedCapacity + '\'' +
                 ", total=" + getFormattedTotal() +
                 '}';
     }

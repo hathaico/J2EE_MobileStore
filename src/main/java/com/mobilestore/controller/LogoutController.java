@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
+import com.mobilestore.service.CartService;
 
 /**
  * Logout Controller
@@ -14,6 +15,7 @@ import java.io.IOException;
  */
 @WebServlet("/logout")
 public class LogoutController extends HttpServlet {
+    private final CartService cartService = new CartService();
     
     /**
      * Handle logout
@@ -24,11 +26,15 @@ public class LogoutController extends HttpServlet {
         // Invalidate session
         HttpSession session = request.getSession(false);
         if (session != null) {
+            cartService.saveCustomerCart(session);
             session.invalidate();
         }
+
+        HttpSession newSession = request.getSession(true);
+        newSession.setAttribute("logoutSuccess", Boolean.TRUE);
         
         // Redirect to home page with logout message
-        response.sendRedirect(request.getContextPath() + "/?logout=success");
+        response.sendRedirect(request.getContextPath() + "/");
     }
     
     /**

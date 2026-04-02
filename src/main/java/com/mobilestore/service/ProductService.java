@@ -24,6 +24,13 @@ public class ProductService {
     public List<Product> getAllProducts() {
         return productDAO.getAllProducts();
     }
+
+    /**
+     * All products for admin (including inactive).
+     */
+    public List<Product> getAllProductsIncludingInactive() {
+        return productDAO.getAllProductsIncludingInactive();
+    }
     
     /**
      * Get product by ID
@@ -183,6 +190,21 @@ public class ProductService {
     }
     
     /**
+     * Get distinct brand names (from products) and return as Brand objects
+     * @return list of Brand
+     */
+    public java.util.List<com.mobilestore.model.Brand> getDistinctBrands() {
+        java.util.List<com.mobilestore.model.Brand> list = new java.util.ArrayList<>();
+        java.util.List<String> names = productDAO.getDistinctBrands();
+        if (names != null) {
+            for (String n : names) {
+                list.add(new com.mobilestore.model.Brand(n));
+            }
+        }
+        return list;
+    }
+
+    /**
      * Validate product data
      * @param product Product to validate
      * @throws IllegalArgumentException if validation fails
@@ -207,6 +229,16 @@ public class ProductService {
             throw new IllegalArgumentException("Model is too long (max 100 characters)");
         }
         
+        // Color
+        if (product.getColor() != null && product.getColor().length() > 50) {
+            throw new IllegalArgumentException("Color is too long (max 50 characters)");
+        }
+        
+        // Capacity
+        if (product.getCapacity() != null && product.getCapacity().length() > 50) {
+            throw new IllegalArgumentException("Capacity is too long (max 50 characters)");
+        }
+        
         // Price
         if (product.getPrice() == null) {
             throw new IllegalArgumentException("Price cannot be null");
@@ -227,6 +259,11 @@ public class ProductService {
         
         if (product.getStockQuantity() < 0) {
             throw new IllegalArgumentException("Stock quantity cannot be negative");
+        }
+
+        // Category
+        if (product.getCategoryId() == null || product.getCategoryId() <= 0) {
+            throw new IllegalArgumentException("Category is required");
         }
         
         // Image URL

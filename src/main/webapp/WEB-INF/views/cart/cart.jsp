@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib prefix="ms" tagdir="/WEB-INF/tags" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 
 <c:set var="pageTitle" value="Giỏ Hàng - Mobile Store" scope="request"/>
@@ -57,16 +58,15 @@
                         </div>
 
                         <c:forEach var="item" items="${cart.items}" varStatus="status">
-                            <div class="cart-item-card" data-product-id="${item.product.productId}">
+                            <div class="cart-item-card" data-item-key="${item.itemKey}" data-product-id="${item.product.productId}">
                                 <div class="row align-items-center">
                                     <!-- Product Image -->
                                     <div class="col-md-2 col-3">
-                                        <div style="background: var(--gray-100); border-radius: 12px; padding: 0.75rem; aspect-ratio: 1;">
+                                        <div class="cart-item-thumb">
                                             <c:choose>
                                                 <c:when test="${not empty item.product.imageUrl}">
-                                                    <img src="${pageContext.request.contextPath}/assets/images/products/${item.product.imageUrl}" 
-                                                         alt="${item.product.productName}"
-                                                         style="width: 100%; height: 100%; object-fit: contain;">
+                                                    <img src="<ms:productImageSrc url="${item.product.imageUrl}" />"
+                                                         alt="${item.product.productName}">
                                                 </c:when>
                                                 <c:otherwise>
                                                     <i class="bi bi-phone" style="font-size: 3rem; color: var(--gray-300); display: block; text-align: center;"></i>
@@ -86,6 +86,15 @@
                                         <div style="color: var(--gray-600); font-size: 0.875rem; margin-bottom: 0.5rem;">
                                             ${item.product.brand}
                                         </div>
+                                        <div style="color: var(--gray-600); font-size: 0.84rem; margin-bottom: 0.4rem; line-height: 1.45;">
+                                            <span style="font-weight: 600; color: var(--gray-800);">
+                                                Màu: ${not empty item.selectedColor ? item.selectedColor : 'Chưa chọn'}
+                                            </span>
+                                            <span style="color: var(--gray-500);">|</span>
+                                            <span style="font-weight: 600; color: var(--gray-800);">
+                                                Dung lượng: ${not empty item.selectedCapacity ? item.selectedCapacity : 'Chưa chọn'}
+                                            </span>
+                                        </div>
                                         <div style="color: var(--primary-color); font-weight: 600; font-size: 1.1rem;">
                                             <fmt:formatNumber value="${item.product.price}" pattern="#,##0₫"/>
                                         </div>
@@ -97,17 +106,18 @@
                                     <!-- Quantity Controls -->
                                     <div class="col-md-3 col-6 mt-3 mt-md-0">
                                         <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: center;">
-                                            <button class="qty-btn qty-decrease" data-product-id="${item.product.productId}" data-current-qty="${item.quantity}"
+                                              <button class="qty-btn qty-decrease" data-item-key="${item.itemKey}" data-current-qty="${item.quantity}"
                                                     style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--gray-300); 
                                                            background: white; cursor: pointer; display: flex; align-items: center; 
                                                            justify-content: center; transition: var(--transition-base);">
                                                 <i class="bi bi-dash"></i>
                                             </button>
                                             <input type="number" value="${item.quantity}" min="1" max="${item.product.stockQuantity}"
-                                                   class="qty-input" data-product-id="${item.product.productId}"
-                                                   style="width: 60px; height: 36px; text-align: center; border: 1px solid var(--gray-300); 
-                                                          border-radius: 8px; font-weight: 600;">
-                                            <button class="qty-btn qty-increase" data-product-id="${item.product.productId}" data-current-qty="${item.quantity}"
+                                                  class="qty-input" data-item-key="${item.itemKey}"
+                                                  style="width: 60px; height: 36px; text-align: center; padding: 0; line-height: 36px; 
+                                                      border: 1px solid var(--gray-300); border-radius: 8px; font-weight: 600; 
+                                                      appearance: textfield; -moz-appearance: textfield;">
+                                              <button class="qty-btn qty-increase" data-item-key="${item.itemKey}" data-current-qty="${item.quantity}"
                                                     style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--gray-300); 
                                                            background: white; cursor: pointer; display: flex; align-items: center; 
                                                            justify-content: center; transition: var(--transition-base);">
@@ -121,7 +131,7 @@
                                         <div style="font-weight: 700; font-size: 1.2rem; color: var(--gray-900); margin-bottom: 0.5rem;">
                                             <fmt:formatNumber value="${item.total}" pattern="#,##0₫"/>
                                         </div>
-                                        <button class="btn btn-sm btn-outline btn-remove-item" data-product-id="${item.product.productId}"
+                                        <button class="btn btn-sm btn-outline btn-remove-item" data-item-key="${item.itemKey}"
                                                 style="color: var(--danger-color); border-color: var(--danger-color);">
                                             <i class="bi bi-trash"></i> Xóa
                                         </button>
@@ -216,7 +226,7 @@
 <script>
 var cartContextPath = '${pageContext.request.contextPath}';
 
-function updateQuantity(productId, quantity) {
+function updateQuantity(itemKey, quantity) {
     quantity = parseInt(quantity);
     if (quantity < 1) {
         if (!confirm('Bạn có muốn xóa sản phẩm này khỏi giỏ hàng?')) return;
@@ -224,7 +234,7 @@ function updateQuantity(productId, quantity) {
     fetch(cartContextPath + '/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'action=update&productId=' + productId + '&quantity=' + quantity
+        body: 'action=update&itemKey=' + encodeURIComponent(itemKey) + '&quantity=' + quantity
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
@@ -234,12 +244,12 @@ function updateQuantity(productId, quantity) {
     .catch(function() { alert('Có lỗi xảy ra khi cập nhật giỏ hàng'); });
 }
 
-function removeFromCart(productId) {
+function removeFromCart(itemKey) {
     if (!confirm('Bạn có chắc muốn xóa sản phẩm này?')) return;
     fetch(cartContextPath + '/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'action=remove&productId=' + productId
+        body: 'action=remove&itemKey=' + encodeURIComponent(itemKey)
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
@@ -268,28 +278,28 @@ function clearCart() {
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.qty-decrease').forEach(function(btn) {
         btn.addEventListener('click', function() {
-            var pid = this.getAttribute('data-product-id');
+            var itemKey = this.getAttribute('data-item-key');
             var qty = parseInt(this.getAttribute('data-current-qty')) - 1;
-            updateQuantity(pid, qty);
+            updateQuantity(itemKey, qty);
         });
     });
     document.querySelectorAll('.qty-increase').forEach(function(btn) {
         btn.addEventListener('click', function() {
-            var pid = this.getAttribute('data-product-id');
+            var itemKey = this.getAttribute('data-item-key');
             var qty = parseInt(this.getAttribute('data-current-qty')) + 1;
-            updateQuantity(pid, qty);
+            updateQuantity(itemKey, qty);
         });
     });
     document.querySelectorAll('.qty-input').forEach(function(input) {
         input.addEventListener('change', function() {
-            var pid = this.getAttribute('data-product-id');
-            updateQuantity(pid, this.value);
+            var itemKey = this.getAttribute('data-item-key');
+            updateQuantity(itemKey, this.value);
         });
     });
     document.querySelectorAll('.btn-remove-item').forEach(function(btn) {
         btn.addEventListener('click', function() {
-            var pid = this.getAttribute('data-product-id');
-            removeFromCart(pid);
+            var itemKey = this.getAttribute('data-item-key');
+            removeFromCart(itemKey);
         });
     });
     document.querySelectorAll('.qty-btn').forEach(function(btn) {

@@ -27,6 +27,32 @@ public class VoucherDAO {
         }
     }
 
+    public void updateVoucher(Voucher v) throws SQLException {
+        String sql = "UPDATE vouchers SET code=?, description=?, discount_type=?, discount_value=?, min_order_value=?, max_discount=?, quantity=?, start_date=?, end_date=?, is_active=?, updated_at=NOW() WHERE voucher_id=?";
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, v.getCode());
+            stmt.setString(2, v.getDescription());
+            stmt.setString(3, v.getDiscountType());
+            stmt.setBigDecimal(4, v.getDiscountValue());
+            stmt.setBigDecimal(5, v.getMinOrderValue());
+            if (v.getMaxDiscount() != null) stmt.setBigDecimal(6, v.getMaxDiscount()); else stmt.setNull(6, java.sql.Types.DECIMAL);
+            if (v.getQuantity() != null) stmt.setInt(7, v.getQuantity()); else stmt.setNull(7, java.sql.Types.INTEGER);
+            if (v.getStartDate() != null) stmt.setDate(8, new java.sql.Date(v.getStartDate().getTime())); else stmt.setNull(8, java.sql.Types.DATE);
+            if (v.getEndDate() != null) stmt.setDate(9, new java.sql.Date(v.getEndDate().getTime())); else stmt.setNull(9, java.sql.Types.DATE);
+            stmt.setBoolean(10, v.isActive());
+            stmt.setInt(11, v.getVoucherId());
+            stmt.executeUpdate();
+        }
+    }
+
+    public void deleteVoucher(int voucherId) throws SQLException {
+        String sql = "DELETE FROM vouchers WHERE voucher_id = ?";
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, voucherId);
+            stmt.executeUpdate();
+        }
+    }
+
         public List<Voucher> getAllVouchers() {
             List<Voucher> list = new ArrayList<>();
             String sql = "SELECT * FROM vouchers ORDER BY created_at DESC";

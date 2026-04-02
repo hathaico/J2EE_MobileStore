@@ -28,35 +28,31 @@ public class ProductReviewApiServlet extends HttpServlet {
         review.setUserId(userId);
         review.setRating(rating);
         review.setComment(comment);
-        try {
-            reviewService.addReview(review);
+        boolean ok = reviewService.addReview(review);
+        if (ok) {
             resp.setStatus(HttpServletResponse.SC_OK);
             resp.getWriter().write("success");
-        } catch (SQLException e) {
+        } else {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            resp.getWriter().write("error: " + e.getMessage());
+            resp.getWriter().write("error: add review failed");
         }
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         int productId = Integer.parseInt(req.getParameter("productId"));
-        try {
-            List<ProductReview> reviews = reviewService.getReviewsByProduct(productId);
-            double avgRating = reviewService.getAverageRating(productId);
-            resp.setContentType("application/json");
-            PrintWriter out = resp.getWriter();
-            out.print("{\"averageRating\":" + avgRating + ",\"reviews\":[");
-            for (int i = 0; i < reviews.size(); i++) {
-                ProductReview r = reviews.get(i);
-                out.print("{\"userId\":" + r.getUserId() + ",\"rating\":" + r.getRating() + ",\"comment\":\"" + escapeJson(r.getComment()) + "\",\"createdAt\":\"" + r.getCreatedAt() + "\"}");
-                if (i < reviews.size() - 1) out.print(",");
-            }
-            out.print("]}");
-        } catch (SQLException e) {
-            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            resp.getWriter().write("error: " + e.getMessage());
+        // Chỉ lấy đánh giá đã duyệt
+        List<ProductReview> reviews = reviewService.getReviewsByProduct(productId, true);
+        double avgRating = reviewService.getAverageRating(productId);
+        resp.setContentType("application/json");
+        PrintWriter out = resp.getWriter();
+        out.print("{\"averageRating\":" + avgRating + ",\"reviews\":[");
+        for (int i = 0; i < reviews.size(); i++) {
+            ProductReview r = reviews.get(i);
+            out.print("{\"userId\":" + r.getUserId() + ",\"rating\":" + r.getRating() + ",\"comment\":\"" + escapeJson(r.getComment()) + "\",\"createdAt\":\"" + r.getCreatedAt() + "\"}");
+            if (i < reviews.size() - 1) out.print(",");
         }
+        out.print("]}");
     }
 
     private String escapeJson(String s) {

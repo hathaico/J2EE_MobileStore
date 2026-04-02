@@ -1,24 +1,61 @@
 // Mobile Store - JavaScript Functions
 
-// Show alert message
-function showAlert(message, type = 'info') {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.role = 'alert';
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+// Show toast notification
+function showToast(message, type = 'info') {
+    const normalizedMessage = normalizeToastMessage(message);
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    toast.innerHTML = `
+        <i class="bi ${type === 'success' ? 'bi-check-circle-fill' : type === 'error' ? 'bi-exclamation-circle-fill' : type === 'warning' ? 'bi-exclamation-triangle-fill' : 'bi-info-circle-fill'}"></i>
+        <span>${normalizedMessage}</span>
+        <button type="button" class="toast-close" aria-label="Đóng">&times;</button>
     `;
-    
-    const container = document.querySelector('.container');
-    if (container) {
-        container.insertBefore(alertDiv, container.firstChild);
-        
-        // Auto hide after 5 seconds
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 5000);
+    document.body.appendChild(toast);
+
+    const closeBtn = toast.querySelector('.toast-close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        });
     }
+
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
+}
+
+function normalizeToastMessage(message) {
+    if (message === null || message === undefined) {
+        return 'Có thông báo mới.';
+    }
+
+    if (typeof message === 'boolean') {
+        return message ? 'Thao tác thành công.' : 'Thao tác chưa thành công.';
+    }
+
+    const text = String(message).trim();
+    if (!text) {
+        return 'Có thông báo mới.';
+    }
+
+    if (text.toLowerCase() === 'false') {
+        return 'Thao tác chưa thành công.';
+    }
+    if (text.toLowerCase() === 'true') {
+        return 'Thao tác thành công.';
+    }
+
+    return text;
+}
+
+function showAlert(message, type = 'info') {
+    showToast(message, type);
 }
 
 // Confirm delete action
@@ -86,10 +123,25 @@ function getContextPath() {
 
 // Update cart badge
 function updateCartBadge(count) {
-    const badge = document.querySelector('.cart-badge');
-    if (badge) {
-        badge.textContent = count;
+    const normalizedCount = Number.isFinite(Number(count)) ? Number(count) : 0;
+    let badge = document.querySelector('#cart-count-badge') || document.querySelector('.cart-badge') || document.querySelector('.ms-nav-icon .ms-badge');
+
+    if (!badge) {
+        const cartLink = document.querySelector('a.ms-nav-icon[title="Giỏ hàng"]');
+        if (cartLink) {
+            badge = document.createElement('span');
+            badge.id = 'cart-count-badge';
+            badge.className = 'ms-badge cart-badge';
+            cartLink.appendChild(badge);
+        }
     }
+
+    if (!badge) {
+        return;
+    }
+
+    badge.textContent = String(normalizedCount);
+    badge.style.display = normalizedCount > 0 ? 'flex' : 'none';
 }
 
 // Form validation
@@ -132,15 +184,26 @@ document.addEventListener('DOMContentLoaded', function() {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
     
-    // Auto-hide alerts
+    // Convert existing Bootstrap alerts to toast popups
     const alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
     alerts.forEach(alert => {
-        setTimeout(() => {
-            const bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
-        }, 5000);
+        const message = alert.textContent.trim();
+        const type = alert.classList.contains('alert-success') ? 'success'
+            : alert.classList.contains('alert-danger') ? 'error'
+            : alert.classList.contains('alert-warning') ? 'warning'
+            : 'info';
+        if (message) {
+            showToast(message, type);
+        }
+        alert.remove();
     });
-    
+
+    // Replace native alert() with toast popup
+    window.nativeAlert = window.alert.bind(window);
+    window.alert = function(message) {
+        showToast(message, 'info');
+    };
+
     // Back to Top Button
     const backToTopButton = document.getElementById('backToTop');
     if (backToTopButton) {
@@ -166,7 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const addToCartButtons = document.querySelectorAll('[data-product-id]');
     addToCartButtons.forEach(button => {
         button.addEventListener('click', function() {
-            const cartIcon = document.querySelector('.nav-icon.bi-cart');
+            const cartIcon = document.querySelector('.ms-nav-icon .bi-cart3');
             if (cartIcon) {
                 cartIcon.classList.add('cart-added');
                 setTimeout(() => {

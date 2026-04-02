@@ -111,4 +111,19 @@ document.addEventListener('DOMContentLoaded', function () {
         el.style.animationDelay = (i * 0.05) + 's';
     });
 
+    // === Button ripple effect ===
+    document.querySelectorAll('.admin-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            var circle = document.createElement('span');
+            circle.classList.add('ripple');
+            var rect = btn.getBoundingClientRect();
+            var size = Math.max(rect.width, rect.height);
+            circle.style.width = circle.style.height = size + 'px';
+            circle.style.left = (e.clientX - rect.left - size/2) + 'px';
+            circle.style.top = (e.clientY - rect.top - size/2) + 'px';
+            btn.appendChild(circle);
+            setTimeout(function(){ circle.remove(); }, 600);
+        });
+    });
+
 });

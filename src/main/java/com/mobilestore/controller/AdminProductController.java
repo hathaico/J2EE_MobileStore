@@ -4,9 +4,12 @@ import com.mobilestore.model.Category;
 import com.mobilestore.model.Product;
 import com.mobilestore.service.CategoryService;
 import com.mobilestore.service.ProductService;
+import com.mobilestore.service.BrandService;
+import com.mobilestore.util.ProductImageUtil;
 import com.mobilestore.util.ValidationUtil;
 
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,14 +22,17 @@ import java.util.List;
  * Handles admin product management requests
  */
 @WebServlet("/admin/products")
+@MultipartConfig(maxFileSize = 5 * 1024 * 1024, maxRequestSize = 10 * 1024 * 1024, fileSizeThreshold = 0)
 public class AdminProductController extends HttpServlet {
     private ProductService productService;
     private CategoryService categoryService;
+    private BrandService brandService;
     
     @Override
     public void init() throws ServletException {
         productService = new ProductService();
         categoryService = new CategoryService();
+        brandService = new BrandService();
     }
     
     @Override
@@ -68,6 +74,10 @@ public class AdminProductController extends HttpServlet {
             throws ServletException, IOException {
         
         String action = request.getParameter("action");
+        // If action missing (multipart or form changes), default to 'create' for add form submissions
+        if (action == null || action.trim().isEmpty()) {
+            action = "create";
+        }
         
         try {
             if ("create".equals(action)) {
@@ -87,6 +97,7 @@ public class AdminProductController extends HttpServlet {
     private void listProducts(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         
+        // Only list active products here so deleted items no longer appear in the admin product table
         List<Product> products = productService.getAllProducts();
         List<Category> categories = categoryService.getAllCategories();
         
@@ -123,6 +134,13 @@ public class AdminProductController extends HttpServlet {
         
         List<Category> categories = categoryService.getAllCategories();
         request.setAttribute("categories", categories);
+        
+        // provide brands to the view (if available)
+        try {
+            request.setAttribute("brands", brandService.getAllBrands());
+        } catch (Exception ignored) {
+            // not critical - view will fallback to text input when brands is empty
+        }
         
         request.getRequestDispatcher("/WEB-INF/views/admin/product/add.jsp").forward(request, response);
     }
@@ -169,6 +187,9 @@ public class AdminProductController extends HttpServlet {
         } catch (IllegalArgumentException e) {
             request.setAttribute("errorMessage", e.getMessage());
             showAddForm(request, response);
+        } catch (IOException | ServletException e) {
+            request.setAttribute("errorMessage", "Không thể lưu ảnh: " + e.getMessage());
+            showAddForm(request, response);
         }
     }
     
@@ -195,6 +216,9 @@ public class AdminProductController extends HttpServlet {
             }
         } catch (IllegalArgumentException e) {
             request.setAttribute("errorMessage", e.getMessage());
+            showEditForm(request, response);
+        } catch (IOException | ServletException e) {
+            request.setAttribute("errorMessage", "Không thể lưu ảnh: " + e.getMessage());
             showEditForm(request, response);
         }
     }
@@ -224,14 +248,19 @@ public class AdminProductController extends HttpServlet {
         }
     }
     
-    private Product extractProductFromRequest(HttpServletRequest request) {
+    private Product extractProductFromRequest(HttpServletRequest request) throws IOException, ServletException {
         Product product = new Product();
         
         product.setProductName(request.getParameter("productName"));
         product.setBrand(request.getParameter("brand"));
         product.setModel(request.getParameter("model"));
         product.setDescription(request.getParameter("description"));
-        product.setImageUrl(request.getParameter("imageUrl"));
+        String uploaded = ProductImageUtil.saveUploadedProductImage(request);
+        if (uploaded != null) {
+            product.setImageUrl(uploaded);
+        } else {
+            product.setImageUrl(request.getParameter("imageUrl"));
+        }
         
         String priceStr = request.getParameter("price");
         if (ValidationUtil.isDecimal(priceStr)) {
@@ -242,6 +271,9 @@ public class AdminProductController extends HttpServlet {
         if (ValidationUtil.isInteger(stockStr)) {
             product.setStockQuantity(Integer.parseInt(stockStr));
         }
+        
+        product.setColor(request.getParameter("color"));
+        product.setCapacity(request.getParameter("capacity"));
         
         String categoryIdStr = request.getParameter("categoryId");
         if (ValidationUtil.isInteger(categoryIdStr)) {

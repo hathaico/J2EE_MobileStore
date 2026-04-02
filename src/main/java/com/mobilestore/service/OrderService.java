@@ -1,9 +1,7 @@
 package com.mobilestore.service;
 
 import com.mobilestore.dao.OrderDAO;
-import com.mobilestore.dao.ProductDAO;
 import com.mobilestore.model.*;
-import com.mobilestore.util.ValidationUtil;
 
 import java.util.List;
 
@@ -14,7 +12,6 @@ import java.util.List;
 public class OrderService {
             public OrderService() {
                 this.orderDAO = new OrderDAO();
-                this.productDAO = new ProductDAO();
             }
             /**
              * Create order from cart
@@ -53,7 +50,7 @@ public class OrderService {
         order.setVoucherId(voucherId);
         order.setStatus("PENDING");
         order.setPaymentMethod(paymentMethod);
-        order.setPaymentStatus("UNPAID");
+        order.setPaymentStatus("CREDIT_CARD".equals(paymentMethod) ? "PAID" : "UNPAID");
         order.setNotes(notes);
 
         // Chuyển CartItem thành OrderItem
@@ -66,6 +63,8 @@ public class OrderService {
             orderItem.setPrice(product.getPrice());
             orderItem.setQuantity(cartItem.getQuantity());
             orderItem.setSubtotal(product.getPrice().multiply(new java.math.BigDecimal(cartItem.getQuantity())));
+            orderItem.setSelectedColor(cartItem.getSelectedColor());
+            orderItem.setSelectedCapacity(cartItem.getSelectedCapacity());
             orderItems.add(orderItem);
         }
         order.setOrderItems(orderItems);
@@ -100,10 +99,51 @@ public class OrderService {
             return orderDAO.getOrderById(orderId);
         }
     private final OrderDAO orderDAO;
-    private final ProductDAO productDAO;
     
         
     
+    /**
+     * Update order status
+     * @param orderId Order ID
+     * @param status New status
+     * @return true if successful, false otherwise
+     */
+    public boolean updateOrderStatus(int orderId, String status) {
+        if (!isValidStatus(status)) {
+            throw new IllegalArgumentException("Trạng thái không hợp lệ: " + status);
+        }
+        return orderDAO.updateOrderStatus(orderId, status);
+    }
+
+    /**
+     * Update payment status
+     * @param orderId Order ID
+     * @param paymentStatus New payment status
+     * @return true if successful, false otherwise
+     */
+    public boolean updatePaymentStatus(int orderId, String paymentStatus) {
+        if (!isValidPaymentStatus(paymentStatus)) {
+            throw new IllegalArgumentException("Trạng thái thanh toán không hợp lệ: " + paymentStatus);
+        }
+        return orderDAO.updatePaymentStatus(orderId, paymentStatus);
+    }
+
+    /**
+     * Confirm order (change status from PENDING to CONFIRMED)
+     * @param orderId Order ID
+     * @return true if successful, false otherwise
+     */
+    public boolean confirmOrder(int orderId) {
+        Order order = orderDAO.getOrderById(orderId);
+        if (order == null) {
+            return false;
+        }
+        if (!"PENDING".equals(order.getStatus())) {
+            return false; // Chỉ có thể xác nhận đơn hàng ở trạng thái PENDING
+        }
+        return updateOrderStatus(orderId, "CONFIRMED");
+    }
+
     /**
      * Check if status is valid
      */
@@ -126,7 +166,8 @@ public class OrderService {
      * Check if payment method is valid
      */
     private boolean isValidPaymentMethod(String paymentMethod) {
-         return "CASH".equals(paymentMethod) || 
+         return "CASH".equals(paymentMethod) ||
+             "COD".equals(paymentMethod) ||
              "BANK_TRANSFER".equals(paymentMethod) || 
              "CREDIT_CARD".equals(paymentMethod);
     }

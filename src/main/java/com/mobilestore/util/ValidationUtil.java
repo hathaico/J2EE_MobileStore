@@ -64,6 +64,9 @@ public class ValidationUtil {
      * Validate positive number
      */
     public static boolean isPositiveNumber(String str) {
+        if (isEmpty(str)) {
+            return false;
+        }
         try {
             double num = Double.parseDouble(str);
             return num > 0;
@@ -76,6 +79,9 @@ public class ValidationUtil {
      * Validate integer
      */
     public static boolean isInteger(String str) {
+        if (isEmpty(str)) {
+            return false;
+        }
         try {
             Integer.parseInt(str);
             return true;
@@ -88,6 +94,9 @@ public class ValidationUtil {
      * Validate decimal number
      */
     public static boolean isDecimal(String str) {
+        if (isEmpty(str)) {
+            return false;
+        }
         try {
             Double.parseDouble(str);
             return true;

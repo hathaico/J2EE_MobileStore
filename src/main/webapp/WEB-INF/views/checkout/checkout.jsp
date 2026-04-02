@@ -31,6 +31,13 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         </c:if>
+
+        <c:if test="${vnpayDevModeActive}">
+            <div class="alert alert-info" role="alert">
+                <i class="bi bi-bezier2 me-2"></i>
+                Đang bật chế độ mô phỏng thanh toán thẻ (DEV MODE - chỉ local). Đơn hàng thẻ sẽ được xác nhận thanh toán ngay để test nhanh.
+            </div>
+        </c:if>
         
         <div class="row">
             <!-- Checkout Form -->
@@ -94,8 +101,43 @@
                                            id="paymentCard" value="CREDIT_CARD"
                                            ${paymentMethod == 'CREDIT_CARD' ? 'checked' : ''}>
                                     <label class="form-check-label" for="paymentCard">
-                                        <i class="bi bi-credit-card"></i> Thẻ tín dụng/Ghi nợ
+                                        <i class="bi bi-credit-card"></i> Thẻ ngân hàng qua VNPay (ATM/Visa/Mastercard)
                                     </label>
+                                </div>
+                                <div class="small text-muted ms-4">
+                                    Khi bấm Đặt Hàng, hệ thống sẽ chuyển sang cổng thanh toán VNPay (hoặc mô phỏng local nếu DEV MODE bật).
+                                </div>
+                                <c:if test="${vnpayDevModeActive}">
+                                    <div class="small text-info mt-2">
+                                        <i class="bi bi-info-circle"></i> DEV MODE đang bật cho máy local này.
+                                    </div>
+                                </c:if>
+                            </div>
+
+                            <div id="card-payment-section" class="mb-3" style="display: none; border: 1px solid #E5E7EB; border-radius: 10px; padding: 1rem; background: #F8FAFC;">
+                                <div class="mb-2" style="font-weight: 600; color: #1F2937;">
+                                    <i class="bi bi-shield-lock"></i> Thông tin thẻ ngân hàng
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label for="cardHolderName" class="form-label">Tên chủ thẻ <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="cardHolderName" name="cardHolderName" maxlength="80" value="${cardHolderName}" placeholder="NGUYEN VAN A">
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="cardNumber" class="form-label">Số thẻ <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="cardNumber" name="cardNumber" inputmode="numeric" autocomplete="cc-number" maxlength="23" placeholder="1234 5678 9012 3456">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="cardExpiry" class="form-label">Ngày hết hạn (MM/YY) <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="cardExpiry" name="cardExpiry" inputmode="numeric" autocomplete="cc-exp" maxlength="5" value="${cardExpiry}" placeholder="MM/YY">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="cardCvv" class="form-label">CVV/CVC <span class="text-danger">*</span></label>
+                                        <input type="password" class="form-control" id="cardCvv" name="cardCvv" inputmode="numeric" autocomplete="cc-csc" maxlength="4" placeholder="123">
+                                    </div>
+                                </div>
+                                <div class="form-text mt-2">
+                                    Hệ thống chỉ dùng thông tin thẻ để xác thực thanh toán và không lưu CVV.
                                 </div>
                             </div>
                             
@@ -131,6 +173,9 @@
                                 <div class="flex-grow-1">
                                     <strong>${item.product.productName}</strong>
                                     <br>
+                                    <small class="text-muted d-block">
+                                        Màu: ${not empty item.selectedColor ? item.selectedColor : 'Chưa chọn'} | Dung lượng: ${not empty item.selectedCapacity ? item.selectedCapacity : 'Chưa chọn'}
+                                    </small>
                                     <small class="text-muted">
                                         <fmt:formatNumber value="${item.product.price}" type="currency" 
                                                         currencyCode="VND" pattern="#,##0 ₫"/> × ${item.quantity}
@@ -261,6 +306,8 @@
             const name = document.getElementById('customerName').value.trim();
             const phone = document.getElementById('customerPhone').value.trim();
             const address = document.getElementById('shippingAddress').value.trim();
+            const selectedPayment = document.querySelector('input[name="paymentMethod"]:checked');
+            const paymentMethod = selectedPayment ? selectedPayment.value : '';
             
             if (name === '' || phone === '' || address === '') {
                 e.preventDefault();
@@ -273,8 +320,111 @@
                 alert('Số điện thoại phải có 10-11 chữ số!');
                 return false;
             }
+
+            if (paymentMethod === 'CREDIT_CARD') {
+                const holder = document.getElementById('cardHolderName').value.trim();
+                const cardNumber = document.getElementById('cardNumber').value.replace(/\D/g, '');
+                const expiry = document.getElementById('cardExpiry').value.trim();
+                const cvv = document.getElementById('cardCvv').value.trim();
+
+                if (!holder) {
+                    e.preventDefault();
+                    alert('Vui lòng nhập tên chủ thẻ.');
+                    return false;
+                }
+
+                if (cardNumber.length < 13 || cardNumber.length > 19 || !luhnCheck(cardNumber)) {
+                    e.preventDefault();
+                    alert('Số thẻ ngân hàng không hợp lệ.');
+                    return false;
+                }
+
+                if (!/^(0[1-9]|1[0-2])\/[0-9]{2}$/.test(expiry) || isExpired(expiry)) {
+                    e.preventDefault();
+                    alert('Ngày hết hạn thẻ không hợp lệ.');
+                    return false;
+                }
+
+                if (!/^[0-9]{3,4}$/.test(cvv)) {
+                    e.preventDefault();
+                    alert('Mã CVV/CVC không hợp lệ.');
+                    return false;
+                }
+            }
             
             return true;
+        });
+
+        function luhnCheck(number) {
+            let sum = 0;
+            let shouldDouble = false;
+            for (let i = number.length - 1; i >= 0; i--) {
+                let digit = parseInt(number.charAt(i), 10);
+                if (shouldDouble) {
+                    digit *= 2;
+                    if (digit > 9) digit -= 9;
+                }
+                sum += digit;
+                shouldDouble = !shouldDouble;
+            }
+            return sum % 10 === 0;
+        }
+
+        function isExpired(expiry) {
+            const [mm, yy] = expiry.split('/');
+            const month = parseInt(mm, 10);
+            const year = 2000 + parseInt(yy, 10);
+            const now = new Date();
+            const currentMonth = now.getMonth() + 1;
+            const currentYear = now.getFullYear();
+
+            return year < currentYear || (year === currentYear && month < currentMonth);
+        }
+
+        function toggleCardPaymentSection() {
+            const selectedPayment = document.querySelector('input[name="paymentMethod"]:checked');
+            const cardSection = document.getElementById('card-payment-section');
+            const isCard = selectedPayment && selectedPayment.value === 'CREDIT_CARD';
+
+            if (cardSection) {
+                cardSection.style.display = isCard ? 'block' : 'none';
+            }
+
+            const cardFields = ['cardHolderName', 'cardNumber', 'cardExpiry', 'cardCvv'];
+            cardFields.forEach(function(fieldId) {
+                const input = document.getElementById(fieldId);
+                if (!input) return;
+                if (isCard) input.setAttribute('required', 'required');
+                else input.removeAttribute('required');
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('input[name="paymentMethod"]').forEach(function(radio) {
+                radio.addEventListener('change', toggleCardPaymentSection);
+            });
+
+            const cardNumber = document.getElementById('cardNumber');
+            if (cardNumber) {
+                cardNumber.addEventListener('input', function() {
+                    const digits = this.value.replace(/\D/g, '').substring(0, 19);
+                    this.value = digits.replace(/(.{4})/g, '$1 ').trim();
+                });
+            }
+
+            const cardExpiry = document.getElementById('cardExpiry');
+            if (cardExpiry) {
+                cardExpiry.addEventListener('input', function() {
+                    const digits = this.value.replace(/\D/g, '').substring(0, 4);
+                    if (digits.length >= 3) {
+                        this.value = digits.substring(0, 2) + '/' + digits.substring(2);
+                    } else {
+                        this.value = digits;
+                    }
+                });
+            }
+
+            toggleCardPaymentSection();
         });
     </script>
 </body>

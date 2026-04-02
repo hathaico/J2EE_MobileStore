@@ -3,8 +3,8 @@ package com.mobilestore.api;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.mobilestore.model.User;
+import com.mobilestore.service.CartService;
 import com.mobilestore.service.UserService;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 
 public class AuthApiServlet extends HttpServlet {
     private final UserService userService = new UserService();
+    private final CartService cartService = new CartService();
     private final Gson gson = new GsonBuilder()
         .registerTypeAdapter(LocalDateTime.class, (com.google.gson.JsonSerializer<LocalDateTime>) (src, typeOfSrc, context) ->
             new com.google.gson.JsonPrimitive(src.toString())
@@ -55,6 +56,7 @@ public class AuthApiServlet extends HttpServlet {
             if (user != null) {
                 HttpSession session = req.getSession(true);
                 session.setAttribute("user", user);
+                cartService.attachCustomerCart(session);
                 writeSuccess(resp, user);
             } else {
                 writeError(resp, "Invalid email or password");
@@ -94,6 +96,7 @@ public class AuthApiServlet extends HttpServlet {
         try {
             HttpSession session = req.getSession(false);
             if (session != null) {
+                cartService.saveCustomerCart(session);
                 session.invalidate();
             }
             writeSuccess(resp, "Logged out");

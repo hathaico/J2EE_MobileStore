@@ -65,9 +65,135 @@
             content: " *";
             color: red;
         }
+
+        /* Notification Container Styles (from global system) */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 400px;
+            pointer-events: none;
+        }
+
+        .notification {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+            border-left: 4px solid;
+            animation: slideInRight 0.3s ease-out;
+            pointer-events: auto;
+            min-height: 64px;
+        }
+
+        .notification.error {
+            border-left-color: #EF4444;
+            background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
+        }
+
+        .notification-icon {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            margin-top: 2px;
+            background: rgba(239, 68, 68, 0.1);
+            color: #EF4444;
+        }
+
+        .notification-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #991B1B;
+        }
+
+        .notification-message {
+            font-size: 0.85rem;
+            color: #7F1D1D;
+            line-height: 1.4;
+        }
+
+        .notification-close {
+            flex-shrink: 0;
+            background: none;
+            border: none;
+            color: #9CA3AF;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0;
+            margin-top: 2px;
+            transition: color 0.2s;
+        }
+
+        .notification-close:hover {
+            color: #1F2937;
+        }
+
+        .notification-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            width: 100%;
+            border-radius: 0 0 12px 12px;
+            background: #EF4444;
+            animation: progress 5s linear;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(400px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(400px);
+            }
+        }
+
+        @keyframes progress {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+
+        .notification.removing {
+            animation: slideOutRight 0.3s ease-out forwards;
+        }
     </style>
 </head>
 <body>
+    <!-- Notification Container -->
+    <div class="notification-container" id="notificationContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; max-width: 400px; pointer-events: none;"></div>
+
     <div class="register-container">
         <div class="register-card">
             <div class="register-logo">
@@ -76,13 +202,62 @@
                 <p class="text-muted">Tạo tài khoản mới để mua sắm</p>
             </div>
             
-            <!-- Error Message -->
+            <!-- Error Message - Now using Notification System -->
             <c:if test="${not empty error}">
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    ${error}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
+                <script>
+                    // Notification system for standalone pages (register)
+                    window.NotificationSystem = window.NotificationSystem || {
+                        container: document.getElementById('notificationContainer'),
+                        
+                        show: function(message, type = 'error', title = 'Lỗi!', autoClose = false) {
+                            const notification = document.createElement('div');
+                            notification.className = `notification ${type}`;
+                            
+                            notification.innerHTML = `
+                                <div class="notification-icon">
+                                    <i class="bi bi-exclamation-circle-fill"></i>
+                                </div>
+                                <div class="notification-content">
+                                    <div class="notification-title">${title}</div>
+                                    <div class="notification-message">${message}</div>
+                                </div>
+                                <button type="button" class="notification-close" aria-label="Close">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                                <div class="notification-progress"></div>
+                            `;
+
+                            this.container.appendChild(notification);
+
+                            notification.querySelector('.notification-close').addEventListener('click', () => {
+                                this.remove(notification);
+                            });
+
+                            if (autoClose) {
+                                setTimeout(() => {
+                                    this.remove(notification);
+                                }, 5000);
+                            }
+
+                            return notification;
+                        },
+
+                        error: function(message, title = 'Lỗi!', autoClose = false) {
+                            return this.show(message, 'error', title, autoClose);
+                        },
+
+                        remove: function(notification) {
+                            notification.classList.add('removing');
+                            setTimeout(() => {
+                                notification.remove();
+                            }, 300);
+                        }
+                    };
+
+                    document.addEventListener('DOMContentLoaded', function() {
+                        window.NotificationSystem.error('${error}', 'Đăng Ký Thất Bại!', false);
+                    });
+                </script>
             </c:if>
             
             <!-- Registration Form -->

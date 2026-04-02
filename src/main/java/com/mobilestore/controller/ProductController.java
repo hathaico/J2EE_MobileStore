@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -52,6 +53,9 @@ public class ProductController extends HttpServlet {
                     break;
                 case "category":
                     filterByCategory(request, response);
+                    break;
+                case "filter":
+                    applyMultipleFilters(request, response);
                     break;
                 default:
                     listProducts(request, response);
@@ -137,7 +141,7 @@ public class ProductController extends HttpServlet {
         int productId = Integer.parseInt(idParam);
         Product product = productService.getProductById(productId);
         
-        if (product == null) {
+        if (product == null || (product.getIsActive() != null && !product.getIsActive())) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Product not found");
             return;
         }
@@ -188,6 +192,108 @@ public class ProductController extends HttpServlet {
         request.setAttribute("categories", categories);
         request.setAttribute("selectedCategory", selectedCategory);
         request.setAttribute("totalProducts", products.size());
+        
+        request.getRequestDispatcher("/WEB-INF/views/product/list.jsp").forward(request, response);
+    }
+    
+    /**
+     * Apply multiple filters (price, color, capacity, brand)
+     */
+    private void applyMultipleFilters(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        
+        List<Product> allProducts = productService.getAllProducts();
+        List<Product> filteredProducts = new ArrayList<>(allProducts);
+        
+        // Filter by prices
+        String pricesParam = request.getParameter("prices");
+        if (pricesParam != null && !pricesParam.isEmpty()) {
+            String[] priceRanges = pricesParam.split(";");
+            List<Product> priceFiltered = new ArrayList<>();
+            
+            for (String range : priceRanges) {
+                String[] parts = range.split("-");
+                if (parts.length == 2) {
+                    try {
+                        BigDecimal minPrice = new BigDecimal(parts[0]);
+                        BigDecimal maxPrice = new BigDecimal(parts[1]);
+                        
+                        for (Product p : filteredProducts) {
+                            if (p.getPrice() != null && 
+                                p.getPrice().compareTo(minPrice) >= 0 && 
+                                p.getPrice().compareTo(maxPrice) <= 0) {
+                                if (!priceFiltered.contains(p)) {
+                                    priceFiltered.add(p);
+                                }
+                            }
+                        }
+                    } catch (NumberFormatException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            filteredProducts = priceFiltered;
+        }
+        
+        // Filter by capacities
+        String capacitiesParam = request.getParameter("capacities");
+        if (capacitiesParam != null && !capacitiesParam.isEmpty()) {
+            String[] capacities = capacitiesParam.split(";");
+            List<Product> capacityFiltered = new ArrayList<>();
+            
+            for (String capacity : capacities) {
+                for (Product p : filteredProducts) {
+                    if (p.getCapacity() != null && p.getCapacity().equalsIgnoreCase(capacity)) {
+                        if (!capacityFiltered.contains(p)) {
+                            capacityFiltered.add(p);
+                        }
+                    }
+                }
+            }
+            filteredProducts = capacityFiltered;
+        }
+        
+        // Filter by colors
+        String colorsParam = request.getParameter("colors");
+        if (colorsParam != null && !colorsParam.isEmpty()) {
+            String[] colors = colorsParam.split(";");
+            List<Product> colorFiltered = new ArrayList<>();
+            
+            for (String color : colors) {
+                for (Product p : filteredProducts) {
+                    if (p.getColor() != null && p.getColor().equalsIgnoreCase(color)) {
+                        if (!colorFiltered.contains(p)) {
+                            colorFiltered.add(p);
+                        }
+                    }
+                }
+            }
+            filteredProducts = colorFiltered;
+        }
+        
+        // Filter by brands
+        String brandsParam = request.getParameter("brands");
+        if (brandsParam != null && !brandsParam.isEmpty()) {
+            String[] brands = brandsParam.split(";");
+            List<Product> brandFiltered = new ArrayList<>();
+            
+            for (String brand : brands) {
+                for (Product p : filteredProducts) {
+                    if (p.getBrand() != null && p.getBrand().equalsIgnoreCase(brand)) {
+                        if (!brandFiltered.contains(p)) {
+                            brandFiltered.add(p);
+                        }
+                    }
+                }
+            }
+            filteredProducts = brandFiltered;
+        }
+        
+        List<Category> categories = categoryService.getAllCategories();
+        
+        request.setAttribute("products", filteredProducts);
+        request.setAttribute("categories", categories);
+        request.setAttribute("totalProducts", filteredProducts.size());
         
         request.getRequestDispatcher("/WEB-INF/views/product/list.jsp").forward(request, response);
     }

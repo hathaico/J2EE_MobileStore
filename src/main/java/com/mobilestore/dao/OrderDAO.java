@@ -198,25 +198,58 @@ public class OrderDAO extends BaseDAO {
         PreparedStatement itemStmt = null;
         ResultSet rs = null;
         
-        String orderSql = "INSERT INTO orders (customer_id, voucher_id, shipping_address, total_amount, status, payment_method, notes) " +
-             "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        // Default SQL includes voucher_id; if DB lacks column, fallback to SQL without it
+        String orderSqlWithVoucher = "INSERT INTO orders (customer_id, voucher_id, shipping_address, total_amount, status, payment_method, notes) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String orderSqlNoVoucher = "INSERT INTO orders (customer_id, shipping_address, total_amount, status, payment_method, notes) VALUES (?, ?, ?, ?, ?, ?)";
         
         String itemSql = "INSERT INTO order_items (order_id, product_id, product_name, " +
-                        "price, quantity, subtotal) VALUES (?, ?, ?, ?, ?, ?)";
+                "price, quantity, subtotal) VALUES (?, ?, ?, ?, ?, ?)";
+        String itemSqlWithVariants = "INSERT INTO order_items (order_id, product_id, product_name, " +
+                "price, quantity, subtotal, selected_color, selected_capacity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        boolean hasVoucherColumn = false;
+        boolean hasSelectedColorColumn = false;
+        boolean hasSelectedCapacityColumn = false;
+        try (Connection tmp = getConnection()){
+            // check schema for voucher_id column
+            ResultSet cols = tmp.getMetaData().getColumns(tmp.getCatalog(), null, "orders", "voucher_id");
+            if (cols != null && cols.next()) hasVoucherColumn = true;
+            if (cols != null) cols.close();
+
+            ResultSet colorCols = tmp.getMetaData().getColumns(tmp.getCatalog(), null, "order_items", "selected_color");
+            if (colorCols != null && colorCols.next()) hasSelectedColorColumn = true;
+            if (colorCols != null) colorCols.close();
+
+            ResultSet capacityCols = tmp.getMetaData().getColumns(tmp.getCatalog(), null, "order_items", "selected_capacity");
+            if (capacityCols != null && capacityCols.next()) hasSelectedCapacityColumn = true;
+            if (capacityCols != null) capacityCols.close();
+        } catch (Exception ex) {
+            // ignore - we'll try both
+        }
         
         try {
             conn = getConnection();
             conn.setAutoCommit(false); // Start transaction
             
-            // Insert order
-            orderStmt = conn.prepareStatement(orderSql, Statement.RETURN_GENERATED_KEYS);
-            orderStmt.setObject(1, order.getCustomerId());
-            orderStmt.setObject(2, order.getVoucherId());
-            orderStmt.setString(3, order.getShippingAddress());
-            orderStmt.setBigDecimal(4, order.getTotalAmount());
-            orderStmt.setString(5, order.getStatus());
-            orderStmt.setString(6, order.getPaymentMethod());
-            orderStmt.setString(7, order.getNotes());
+            // Choose SQL based on schema
+            String chosenOrderSql = hasVoucherColumn ? orderSqlWithVoucher : orderSqlNoVoucher;
+            orderStmt = conn.prepareStatement(chosenOrderSql, Statement.RETURN_GENERATED_KEYS);
+            if (hasVoucherColumn) {
+                orderStmt.setObject(1, order.getCustomerId());
+                orderStmt.setObject(2, order.getVoucherId());
+                orderStmt.setString(3, order.getShippingAddress());
+                orderStmt.setBigDecimal(4, order.getTotalAmount());
+                orderStmt.setString(5, order.getStatus());
+                orderStmt.setString(6, order.getPaymentMethod());
+                orderStmt.setString(7, order.getNotes());
+            } else {
+                orderStmt.setObject(1, order.getCustomerId());
+                orderStmt.setString(2, order.getShippingAddress());
+                orderStmt.setBigDecimal(3, order.getTotalAmount());
+                orderStmt.setString(4, order.getStatus());
+                orderStmt.setString(5, order.getPaymentMethod());
+                orderStmt.setString(6, order.getNotes());
+            }
             
             int affectedRows = orderStmt.executeUpdate();
             
@@ -236,7 +269,8 @@ public class OrderDAO extends BaseDAO {
             }
             
             // Insert order items
-            itemStmt = conn.prepareStatement(itemSql);
+            String chosenItemSql = (hasSelectedColorColumn && hasSelectedCapacityColumn) ? itemSqlWithVariants : itemSql;
+            itemStmt = conn.prepareStatement(chosenItemSql);
             for (OrderItem item : order.getOrderItems()) {
                 itemStmt.setInt(1, orderId);
                 itemStmt.setInt(2, item.getProductId());
@@ -244,6 +278,10 @@ public class OrderDAO extends BaseDAO {
                 itemStmt.setBigDecimal(4, item.getPrice());
                 itemStmt.setInt(5, item.getQuantity());
                 itemStmt.setBigDecimal(6, item.getSubtotal());
+                if (hasSelectedColorColumn && hasSelectedCapacityColumn) {
+                    itemStmt.setString(7, item.getSelectedColor());
+                    itemStmt.setString(8, item.getSelectedCapacity());
+                }
                 itemStmt.addBatch();
             }
             
@@ -379,7 +417,24 @@ public class OrderDAO extends BaseDAO {
         item.setPrice(rs.getBigDecimal("price"));
         item.setQuantity(rs.getInt("quantity"));
         item.setSubtotal(rs.getBigDecimal("subtotal"));
+        if (hasColumn(rs, "selected_color")) {
+            item.setSelectedColor(rs.getString("selected_color"));
+        }
+        if (hasColumn(rs, "selected_capacity")) {
+            item.setSelectedCapacity(rs.getString("selected_capacity"));
+        }
         
         return item;
+    }
+
+    private boolean hasColumn(ResultSet rs, String columnName) throws SQLException {
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
+        for (int i = 1; i <= columnCount; i++) {
+            if (columnName.equalsIgnoreCase(metaData.getColumnName(i))) {
+                return true;
+            }
+        }
+        return false;
     }
 }

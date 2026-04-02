@@ -51,6 +51,9 @@
 
             <div class="admin-nav-section">
                 <div class="admin-nav-label">Quản lý</div>
+                <a href="${ctx}/admin/statistics" class="admin-nav-item ${activePage == 'statistics' ? 'active' : ''}">
+                    <i class="bi bi-bar-chart-line"></i> Thống kê
+                </a>
                 <a href="${ctx}/admin/products" class="admin-nav-item ${activePage == 'products' ? 'active' : ''}">
                     <i class="bi bi-box-seam-fill"></i> Sản phẩm
                 </a>
@@ -65,6 +68,9 @@
                 </a>
                 <a href="${ctx}/admin/vouchers" class="admin-nav-item ${activePage == 'vouchers' ? 'active' : ''}">
                     <i class="bi bi-ticket-perforated"></i> Voucher
+                </a>
+                <a href="${ctx}/admin/reviews" class="admin-nav-item ${activePage == 'reviews' ? 'active' : ''}">
+                    <i class="bi bi-star-fill"></i> Đánh giá
                 </a>
             </div>
 
@@ -130,3 +136,28 @@
 
         <!-- Page Content -->
         <div class="admin-content">
+            <div class="admin-content-container">
+                <c:if test="${empty adminHideContentHeaderTitle or not empty adminHeaderBackHref}">
+                <div class="admin-content-header ${not empty adminHideContentHeaderTitle ? 'admin-content-header--actions-only' : ''}">
+                    <c:if test="${empty adminHideContentHeaderTitle}">
+                    <div class="admin-content-header-main">
+                        <h2>${pageTitle != null ? pageTitle : 'Admin - Mobile Store'}</h2>
+                        <c:if test="${not empty adminPageDesc}">
+                            <p class="admin-content-desc"><c:out value="${adminPageDesc}" /></p>
+                        </c:if>
+                    </div>
+                    </c:if>
+                    <c:if test="${not empty adminHeaderBackHref}">
+                        <div class="admin-content-header-actions">
+                            <a href="${adminHeaderBackHref}" class="admin-btn admin-btn-outline admin-btn-sm">
+                                <i class="bi bi-arrow-left"></i>
+                                <c:choose>
+                                    <c:when test="${not empty adminHeaderBackLabel}"><c:out value="${adminHeaderBackLabel}" /></c:when>
+                                    <c:otherwise>Quay lại</c:otherwise>
+                                </c:choose>
+                            </a>
+                        </div>
+                    </c:if>
+                </div>
+                </c:if>
+                <div class="admin-content-body">

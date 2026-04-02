@@ -1,9 +1,13 @@
 package com.mobilestore.service;
 
 import com.mobilestore.dao.ProductDAO;
+import com.mobilestore.dao.CustomerCartDAO;
+import com.mobilestore.dao.CustomerDAO;
 import com.mobilestore.model.Cart;
 import com.mobilestore.model.CartItem;
+import com.mobilestore.model.Customer;
 import com.mobilestore.model.Product;
+import com.mobilestore.model.User;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -24,9 +28,13 @@ public class CartService {
     private static final String CART_SESSION_KEY = "cart";
     
     private final ProductDAO productDAO;
+    private final CustomerDAO customerDAO;
+    private final CustomerCartDAO customerCartDAO;
     
     public CartService() {
         this.productDAO = new ProductDAO();
+        this.customerDAO = new CustomerDAO();
+        this.customerCartDAO = new CustomerCartDAO();
     }
     
     /**
@@ -38,7 +46,7 @@ public class CartService {
         Cart cart = (Cart) session.getAttribute(CART_SESSION_KEY);
         
         if (cart == null) {
-            cart = new Cart();
+            cart = loadCustomerCartIfAvailable(session);
             session.setAttribute(CART_SESSION_KEY, cart);
         }
         
@@ -53,9 +61,19 @@ public class CartService {
      * @return true if successful, false otherwise
      */
     public boolean addToCart(HttpSession session, int productId, int quantity) {
+        return addToCart(session, productId, quantity, null, null);
+    }
+
+    /**
+     * Add product variant to cart
+     */
+    public boolean addToCart(HttpSession session, int productId, int quantity, String selectedColor, String selectedCapacity) {
         if (quantity <= 0) {
             throw new IllegalArgumentException("Quantity must be greater than 0");
         }
+
+        selectedColor = normalizeVariant(selectedColor);
+        selectedCapacity = normalizeVariant(selectedCapacity);
         
         // Get product from database
         Product product = productDAO.getProductById(productId);
@@ -71,7 +89,10 @@ public class CartService {
         
         // Get cart and check current quantity
         Cart cart = getCart(session);
-        CartItem existingItem = cart.getItem(productId);
+        CartItem existingVariantItem = cart.getItem(productId, selectedColor, selectedCapacity);
+        CartItem unselectedItem = cart.getUnselectedItemByProductId(productId);
+
+        CartItem existingItem = existingVariantItem != null ? existingVariantItem : unselectedItem;
         int currentQuantity = existingItem != null ? existingItem.getQuantity() : 0;
         int newQuantity = currentQuantity + quantity;
         
@@ -81,8 +102,18 @@ public class CartService {
                                              product.getStockQuantity());
         }
         
-        // Add to cart
-        cart.addItem(product, quantity);
+        // Add to cart or retag an existing unselected item to the chosen variant
+        if (existingVariantItem != null) {
+            cart.addItem(product, quantity, selectedColor, selectedCapacity);
+        } else if (existingItem != null && existingItem == unselectedItem && (selectedColor != null || selectedCapacity != null)) {
+            existingItem.setProduct(product);
+            existingItem.setQuantity(newQuantity);
+            cart.retagItemVariant(existingItem, selectedColor, selectedCapacity);
+        } else {
+            cart.addItem(product, quantity, selectedColor, selectedCapacity);
+        }
+
+        persistCustomerCartIfAvailable(session, cart);
         
         return true;
     }
@@ -96,10 +127,29 @@ public class CartService {
      */
     public boolean updateCartItem(HttpSession session, int productId, int quantity) {
         Cart cart = getCart(session);
+        CartItem firstItem = cart.getItem(productId);
+        if (firstItem == null) {
+            throw new IllegalArgumentException("Item not found in cart");
+        }
+        return updateCartItem(session, firstItem.getItemKey(), quantity);
+    }
+
+    /**
+     * Update cart item quantity by item key
+     */
+    public boolean updateCartItem(HttpSession session, String itemKey, int quantity) {
+        Cart cart = getCart(session);
+        CartItem existingItem = cart.getItemByKey(itemKey);
+        if (existingItem == null) {
+            throw new IllegalArgumentException("Item not found in cart");
+        }
+
         if (quantity <= 0) {
-            cart.removeItem(productId);
+            cart.removeItemByKey(itemKey);
             return true;
         }
+
+        int productId = existingItem.getProduct().getProductId();
         // Get product from database to check stock
         Product product = productDAO.getProductById(productId);
         if (product == null) {
@@ -109,12 +159,10 @@ public class CartService {
         if (quantity > product.getStockQuantity()) {
             throw new IllegalArgumentException("Quantity exceeds available stock. Available: " + product.getStockQuantity());
         }
-        // Nếu item chưa có trong cart thì thêm mới, nếu đã có thì update số lượng
-        if (cart.getItem(productId) == null) {
-            cart.addItem(product, quantity);
-        } else {
-            cart.updateItem(productId, quantity);
-        }
+
+        existingItem.setProduct(product);
+        cart.updateItemByKey(itemKey, quantity);
+        persistCustomerCartIfAvailable(session, cart);
         return true;
     }
     
@@ -127,6 +175,17 @@ public class CartService {
     public boolean removeFromCart(HttpSession session, int productId) {
         Cart cart = getCart(session);
         cart.removeItem(productId);
+        persistCustomerCartIfAvailable(session, cart);
+        return true;
+    }
+
+    /**
+     * Remove item from cart by item key
+     */
+    public boolean removeFromCart(HttpSession session, String itemKey) {
+        Cart cart = getCart(session);
+        cart.removeItemByKey(itemKey);
+        persistCustomerCartIfAvailable(session, cart);
         return true;
     }
     
@@ -137,6 +196,7 @@ public class CartService {
     public void clearCart(HttpSession session) {
         Cart cart = getCart(session);
         cart.clear();
+        persistCustomerCartIfAvailable(session, cart);
     }
     
     /**
@@ -155,7 +215,7 @@ public class CartService {
             
             if (currentProduct == null) {
                 // Product no longer exists, remove from cart
-                cart.removeItem(item.getProduct().getProductId());
+                cart.removeItemByKey(item.getItemKey());
                 cartChanged = true;
             } else {
                 // Update product information
@@ -168,11 +228,15 @@ public class CartService {
                         item.setQuantity(currentProduct.getStockQuantity());
                     } else {
                         // Out of stock, remove from cart
-                        cart.removeItem(currentProduct.getProductId());
+                        cart.removeItemByKey(item.getItemKey());
                     }
                     cartChanged = true;
                 }
             }
+        }
+
+        if (cartChanged) {
+            persistCustomerCartIfAvailable(session, cart);
         }
         
         return !cartChanged;
@@ -186,5 +250,78 @@ public class CartService {
     public int getCartItemCount(HttpSession session) {
         Cart cart = getCart(session);
         return cart.getItemCount();
+    }
+
+    /**
+     * Load persistent customer cart into session and merge with any existing session cart.
+     */
+    public Cart attachCustomerCart(HttpSession session) {
+        Cart sessionCart = (Cart) session.getAttribute(CART_SESSION_KEY);
+        Cart customerCart = loadCustomerCartIfAvailable(session);
+
+        if (sessionCart == null || sessionCart.isEmpty()) {
+            session.setAttribute(CART_SESSION_KEY, customerCart);
+            return customerCart;
+        }
+
+        if (customerCart != null && !customerCart.isEmpty()) {
+            for (CartItem item : customerCart.getItems()) {
+                if (item != null && item.getProduct() != null) {
+                    sessionCart.addItem(item.getProduct(), item.getQuantity(), item.getSelectedColor(), item.getSelectedCapacity());
+                }
+            }
+        }
+
+        session.setAttribute(CART_SESSION_KEY, sessionCart);
+        persistCustomerCartIfAvailable(session, sessionCart);
+        return sessionCart;
+    }
+
+    public void saveCustomerCart(HttpSession session) {
+        Cart cart = getCart(session);
+        persistCustomerCartIfAvailable(session, cart);
+    }
+
+    private Cart loadCustomerCartIfAvailable(HttpSession session) {
+        Integer customerId = resolveCustomerId(session);
+        if (customerId == null) {
+            return new Cart();
+        }
+        return customerCartDAO.loadCustomerCart(customerId);
+    }
+
+    private void persistCustomerCartIfAvailable(HttpSession session, Cart cart) {
+        Integer customerId = resolveCustomerId(session);
+        if (customerId == null) {
+            return;
+        }
+        customerCartDAO.saveCustomerCart(customerId, cart);
+    }
+
+    private Integer resolveCustomerId(HttpSession session) {
+        if (session == null) {
+            return null;
+        }
+
+        Object userObj = session.getAttribute("user");
+        if (!(userObj instanceof User)) {
+            return null;
+        }
+
+        User user = (User) userObj;
+        if (user.getUserId() == null) {
+            return null;
+        }
+
+        Customer customer = customerDAO.getCustomerByUserId(user.getUserId());
+        return customer != null ? customer.getCustomerId() : null;
+    }
+
+    private String normalizeVariant(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

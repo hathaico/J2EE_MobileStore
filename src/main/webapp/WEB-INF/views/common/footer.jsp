@@ -1,4 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
     <!-- Modern Footer -->
     <footer style="background: #1F2937; color: #fff; padding: 60px 0 30px; margin-top: 60px;">
         <div class="container" style="max-width: 1200px;">
@@ -98,6 +99,123 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Notification System -->
+    <script>
+        // Global notification system
+        window.NotificationSystem = {
+            container: document.getElementById('notificationContainer'),
+
+            normalizeMessage: function(message) {
+                if (message === null || message === undefined) {
+                    return 'Có thông báo mới.';
+                }
+
+                if (typeof message === 'boolean') {
+                    return message ? 'Thao tác thành công.' : 'Thao tác chưa thành công.';
+                }
+
+                const text = String(message).trim();
+                if (!text) {
+                    return 'Có thông báo mới.';
+                }
+
+                if (text.toLowerCase() === 'false') {
+                    return 'Thao tác chưa thành công.';
+                }
+                if (text.toLowerCase() === 'true') {
+                    return 'Thao tác thành công.';
+                }
+
+                return text;
+            },
+            
+            show: function(message, type = 'info', title = '', autoClose = true) {
+                const normalizedMessage = this.normalizeMessage(message);
+                const notification = document.createElement('div');
+                notification.className = `notification ${'$'}{type}`;
+                
+                const icons = {
+                    success: 'bi-check-circle-fill',
+                    error: 'bi-exclamation-circle-fill',
+                    info: 'bi-info-circle-fill',
+                    warning: 'bi-exclamation-triangle-fill'
+                };
+
+                const titles = {
+                    success: 'Thành công!',
+                    error: 'Lỗi!',
+                    info: 'Thông báo',
+                    warning: 'Cảnh báo'
+                };
+
+                notification.innerHTML = `
+                    <div class="notification-icon">
+                        <i class="bi ${'$'}{icons[type]}"></i>
+                    </div>
+                    <div class="notification-content">
+                        <div class="notification-title">${'$'}{title || titles[type]}</div>
+                        <div class="notification-message">${'$'}{normalizedMessage}</div>
+                    </div>
+                    <button type="button" class="notification-close" aria-label="Close">
+                        <i class="bi bi-x"></i>
+                    </button>
+                    <div class="notification-progress"></div>
+                `;
+
+                this.container.appendChild(notification);
+
+                // Close button handler
+                notification.querySelector('.notification-close').addEventListener('click', () => {
+                    this.remove(notification);
+                });
+
+                // Auto close
+                if (autoClose) {
+                    setTimeout(() => {
+                        this.remove(notification);
+                    }, 5000);
+                }
+
+                return notification;
+            },
+
+            success: function(message, title = '', autoClose = true) {
+                return this.show(message, 'success', title || 'Thành công!', autoClose);
+            },
+
+            error: function(message, title = '', autoClose = true) {
+                return this.show(message, 'error', title || 'Lỗi!', autoClose);
+            },
+
+            info: function(message, title = '', autoClose = true) {
+                return this.show(message, 'info', title || 'Thông báo', autoClose);
+            },
+
+            warning: function(message, title = '', autoClose = true) {
+                return this.show(message, 'warning', title || 'Cảnh báo', autoClose);
+            },
+
+            remove: function(notification) {
+                notification.classList.add('removing');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }
+        };
+
+        // Handle initial notifications from session flags
+        document.addEventListener('DOMContentLoaded', function() {
+            if (${sessionScope.logoutSuccess == true}) {
+                window.NotificationSystem.success('Đã đăng xuất thành công!', 'Tạm biệt!', true);
+            }
+        });
+    </script>
+    <c:remove var="logoutSuccess" scope="session"/>
+    
+    <!-- Global Alerts CSS/JS -->
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/admin-alerts.css">
+    <script src="${pageContext.request.contextPath}/assets/js/global-alerts.js"></script>
     
     <!-- Custom JS -->
     <script src="${pageContext.request.contextPath}/assets/js/main.js"></script>
