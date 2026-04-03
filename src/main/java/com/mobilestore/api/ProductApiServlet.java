@@ -5,8 +5,6 @@ import com.google.gson.Gson;
 import com.mobilestore.model.Product;
 import com.mobilestore.service.ProductService;
 
-import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.util.List;
