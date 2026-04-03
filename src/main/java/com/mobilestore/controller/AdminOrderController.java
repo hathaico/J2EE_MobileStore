@@ -120,19 +120,4 @@ public class AdminOrderController extends HttpServlet {
         }
     }
     
-    /**
-     * Update order status
-     */
-    private void updateOrderStatus(HttpServletRequest request, HttpServletResponse response) 
-            throws IOException {
-        // Đã loại bỏ hàm updateOrderStatus khỏi OrderService. Nếu cần cập nhật trạng thái, hãy bổ sung lại logic phù hợp.
-    }
-    
-    /**
-     * Update payment status
-     */
-    private void updatePaymentStatus(HttpServletRequest request, HttpServletResponse response) 
-            throws IOException {
-        // Đã loại bỏ hàm updatePaymentStatus khỏi OrderService. Nếu cần cập nhật trạng thái thanh toán, hãy bổ sung lại logic phù hợp.
-    }
 }
