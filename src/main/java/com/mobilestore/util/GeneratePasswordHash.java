@@ -1,6 +1,5 @@
 
 package com.mobilestore.util;
-import com.mobilestore.util.PasswordUtil;
 
 /**
  * Generate password hash for database

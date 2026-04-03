@@ -2,7 +2,6 @@ package com.mobilestore.dao;
 
 import com.mobilestore.model.Voucher;
 import java.sql.*;
-import java.util.Date;
 
 import java.util.ArrayList;
 import java.util.List;
