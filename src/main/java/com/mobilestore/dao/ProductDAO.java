@@ -11,6 +11,7 @@ import java.util.List;
  * Data Access Object for Product operations
  */
 public class ProductDAO extends BaseDAO {
+    private Boolean supportsImageUrlsColumn;
     
     /**
      * Get all products with category names
@@ -254,15 +255,14 @@ public class ProductDAO extends BaseDAO {
      * @return Generated product ID, or -1 if failed
      */
     public int createProduct(Product product) {
-        String sql = "INSERT INTO products (product_name, brand, model, color, capacity, price, stock_quantity, " +
-                "category_id, description, image_url, image_urls) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        
         Connection conn = null;
         PreparedStatement stmt = null;
         ResultSet rs = null;
         
         try {
             conn = getConnection();
+            boolean includeImageUrls = supportsImageUrlsColumn();
+            String sql = buildCreateProductSql(includeImageUrls);
             stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             stmt.setString(1, product.getProductName());
             stmt.setString(2, product.getBrand());
@@ -274,7 +274,9 @@ public class ProductDAO extends BaseDAO {
             stmt.setObject(8, product.getCategoryId());
             stmt.setString(9, product.getDescription());
             stmt.setString(10, product.getImageUrl());
-            stmt.setString(11, product.getImageUrls());
+            if (includeImageUrls) {
+                stmt.setString(11, product.getImageUrls());
+            }
             
             int affectedRows = stmt.executeUpdate();
             
@@ -300,30 +302,38 @@ public class ProductDAO extends BaseDAO {
      * @return true if successful, false otherwise
      */
     public boolean updateProduct(Product product) {
-        String sql = "UPDATE products SET product_name = ?, brand = ?, model = ?, color = ?, capacity = ?, price = ?, " +
-                    "stock_quantity = ?, category_id = ?, description = ?, image_url = ?, image_urls = ? " +
-                    "WHERE product_id = ?";
-        
+        Connection conn = null;
+        PreparedStatement stmt = null;
         try {
-            int affectedRows = executeUpdate(sql,
-                product.getProductName(),
-                product.getBrand(),
-                product.getModel(),
-                product.getColor(),
-                product.getCapacity(),
-                product.getPrice(),
-                product.getStockQuantity(),
-                product.getCategoryId(),
-                product.getDescription(),
-                product.getImageUrl(),
-                product.getImageUrls(),
-                product.getProductId()
-            );
+            conn = getConnection();
+            boolean includeImageUrls = supportsImageUrlsColumn();
+            String sql = buildUpdateProductSql(includeImageUrls);
+            stmt = conn.prepareStatement(sql);
+            stmt.setString(1, product.getProductName());
+            stmt.setString(2, product.getBrand());
+            stmt.setString(3, product.getModel());
+            stmt.setString(4, product.getColor());
+            stmt.setString(5, product.getCapacity());
+            stmt.setBigDecimal(6, product.getPrice());
+            stmt.setInt(7, product.getStockQuantity());
+            stmt.setObject(8, product.getCategoryId());
+            stmt.setString(9, product.getDescription());
+            stmt.setString(10, product.getImageUrl());
+            if (includeImageUrls) {
+                stmt.setString(11, product.getImageUrls());
+                stmt.setInt(12, product.getProductId());
+            } else {
+                stmt.setInt(11, product.getProductId());
+            }
+
+            int affectedRows = stmt.executeUpdate();
             return affectedRows > 0;
         } catch (SQLException e) {
             System.err.println("Error updating product: " + e.getMessage());
             e.printStackTrace();
             return false;
+        } finally {
+            closeResources(conn, stmt, null);
         }
     }
     
@@ -436,7 +446,7 @@ public class ProductDAO extends BaseDAO {
         product.setColor(rs.getString("color"));
         product.setCapacity(rs.getString("capacity"));
         product.setImageUrl(rs.getString("image_url"));
-        product.setImageUrls(rs.getString("image_urls"));
+        product.setImageUrls(getOptionalString(rs, "image_urls"));
         product.setIsActive(rs.getBoolean("is_active"));
         
         Timestamp createdAt = rs.getTimestamp("created_at");
@@ -476,6 +486,53 @@ public class ProductDAO extends BaseDAO {
             closeResources(conn, stmt, rs);
         }
         return brands;
+    }
+
+    private boolean supportsImageUrlsColumn() throws SQLException {
+        if (supportsImageUrlsColumn != null) {
+            return supportsImageUrlsColumn;
+        }
+
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            DatabaseMetaData metaData = conn.getMetaData();
+            try (ResultSet columns = metaData.getColumns(conn.getCatalog(), null, "products", "image_urls")) {
+                supportsImageUrlsColumn = columns.next();
+            }
+            return supportsImageUrlsColumn;
+        } finally {
+            closeResources(conn, null, null);
+        }
+    }
+
+    private String buildCreateProductSql(boolean includeImageUrls) {
+        if (includeImageUrls) {
+            return "INSERT INTO products (product_name, brand, model, color, capacity, price, stock_quantity, " +
+                    "category_id, description, image_url, image_urls) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        }
+        return "INSERT INTO products (product_name, brand, model, color, capacity, price, stock_quantity, " +
+                "category_id, description, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    }
+
+    private String buildUpdateProductSql(boolean includeImageUrls) {
+        if (includeImageUrls) {
+            return "UPDATE products SET product_name = ?, brand = ?, model = ?, color = ?, capacity = ?, price = ?, " +
+                    "stock_quantity = ?, category_id = ?, description = ?, image_url = ?, image_urls = ? " +
+                    "WHERE product_id = ?";
+        }
+        return "UPDATE products SET product_name = ?, brand = ?, model = ?, color = ?, capacity = ?, price = ?, " +
+                "stock_quantity = ?, category_id = ?, description = ?, image_url = ? " +
+                "WHERE product_id = ?";
+    }
+
+    private String getOptionalString(ResultSet rs, String columnName) throws SQLException {
+        try {
+            rs.findColumn(columnName);
+            return rs.getString(columnName);
+        } catch (SQLException e) {
+            return null;
+        }
     }
 }
 
