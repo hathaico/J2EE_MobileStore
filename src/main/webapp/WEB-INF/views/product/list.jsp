@@ -128,7 +128,7 @@
                             <span class="brand-wordmark brand-wordmark--oneplus">OnePlus</span>
                         </div>
                         <div class="brand-filter-item brand-filter-item--google" data-brand="Google" onclick="filterByBrand(this)">
-                            <span class="brand-wordmark brand-wordmark--google">Google</span>
+                            <span class="brand-wordmark brand-wordmark--google"><span style="color: #4285f4;">G</span><span style="color: #ea4335;">o</span><span style="color: #fbbc04;">o</span><span style="color: #4285f4;">g</span><span style="color: #34a853;">l</span><span style="color: #ea4335;">e</span></span>
                         </div>
                         <div class="brand-filter-item brand-filter-item--motorola" data-brand="Motorola" onclick="filterByBrand(this)">
                             <span class="brand-wordmark brand-wordmark--motorola">motorola</span>
@@ -196,7 +196,7 @@
                         <i class="bi bi-star" style="color: #2563EB;"></i> Đánh Giá
                     </h6>
                     <div style="display: flex; align-items: center; padding: 5px 0;">
-                        <input type="checkbox" id="rating-5" style="accent-color: #2563EB; margin-right: 8px; cursor: pointer;">
+                        <input type="checkbox" id="rating-5" class="rating-filter" data-rating="5" style="accent-color: #2563EB; margin-right: 8px; cursor: pointer;">
                         <label for="rating-5" style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
                             <i class="bi bi-star-fill" style="color: #f59e0b; font-size: 0.85rem;"></i>
                             <i class="bi bi-star-fill" style="color: #f59e0b; font-size: 0.85rem;"></i>
@@ -206,7 +206,7 @@
                         </label>
                     </div>
                     <div style="display: flex; align-items: center; padding: 5px 0;">
-                        <input type="checkbox" id="rating-4" style="accent-color: #2563EB; margin-right: 8px; cursor: pointer;">
+                        <input type="checkbox" id="rating-4" class="rating-filter" data-rating="4" style="accent-color: #2563EB; margin-right: 8px; cursor: pointer;">
                         <label for="rating-4" style="cursor: pointer; display: flex; align-items: center; gap: 4px; color: #6b7280; font-size: 0.9rem;">
                             <i class="bi bi-star-fill" style="color: #f59e0b; font-size: 0.85rem;"></i>
                             <i class="bi bi-star-fill" style="color: #f59e0b; font-size: 0.85rem;"></i>
@@ -217,7 +217,7 @@
                         </label>
                     </div>
                     <div style="display: flex; align-items: center; padding: 5px 0;">
-                        <input type="checkbox" id="rating-3" style="accent-color: #2563EB; margin-right: 8px; cursor: pointer;">
+                        <input type="checkbox" id="rating-3" class="rating-filter" data-rating="3" style="accent-color: #2563EB; margin-right: 8px; cursor: pointer;">
                         <label for="rating-3" style="cursor: pointer; display: flex; align-items: center; gap: 4px; color: #6b7280; font-size: 0.9rem;">
                             <i class="bi bi-star-fill" style="color: #f59e0b; font-size: 0.85rem;"></i>
                             <i class="bi bi-star-fill" style="color: #f59e0b; font-size: 0.85rem;"></i>
@@ -673,10 +673,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Brand filter click handler
-function filterByBrand(el) {
-    el.classList.toggle('active');
-}
 </script>
 
 <jsp:include page="../common/footer.jsp"/>
@@ -684,11 +680,6 @@ function filterByBrand(el) {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const ctx = '${pageContext.request.contextPath}';
-    let selectedFilters = {
-        prices: [],
-        capacities: [],
-        brands: []
-    };
 
     // Price filter
     document.querySelectorAll('.price-filter').forEach(checkbox => {
@@ -700,18 +691,9 @@ document.addEventListener('DOMContentLoaded', function() {
         checkbox.addEventListener('change', applyFilters);
     });
 
-    // Brand filter
-    document.querySelectorAll('.brand-filter-item').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            this.classList.toggle('active');
-            if (this.classList.contains('active')) {
-                this.style.opacity = '0.7';
-            } else {
-                this.style.opacity = '1';
-            }
-            applyFilters();
-        });
+    // Rating filter
+    document.querySelectorAll('.rating-filter').forEach(checkbox => {
+        checkbox.addEventListener('change', applyFilters);
     });
 
     function applyFilters() {
@@ -732,6 +714,13 @@ document.addEventListener('DOMContentLoaded', function() {
             capacities.push(checkbox.value);
         });
         if (capacities.length > 0) params.append('capacities', capacities.join(';'));
+
+        // Collect ratings
+        const ratings = [];
+        document.querySelectorAll('.rating-filter:checked').forEach(checkbox => {
+            ratings.push(checkbox.getAttribute('data-rating'));
+        });
+        if (ratings.length > 0) params.append('ratings', ratings.join(';'));
 
         // Collect brands
         const brands = [];

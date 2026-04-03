@@ -114,6 +114,15 @@
                 <input type="file" id="productImageFile" name="productImageFile" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml" class="form-control">
             </div>
 
+            <div class="mb-3">
+                <label for="productImageFiles" class="admin-form-label">Ảnh bổ sung</label>
+                <input type="file" id="productImageFiles" name="productImageFiles" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml" class="form-control" multiple>
+                <input type="hidden" id="imageUrls" name="imageUrls" value="${product.imageUrls}">
+                <div style="font-size:0.8rem; color:var(--admin-text-muted); margin-top:6px;">
+                    Chọn nhiều ảnh để thêm vào gallery của sản phẩm.
+                </div>
+            </div>
+
             <c:set var="img" value="${fn:trim(product.imageUrl)}" />
             <c:if test="${not empty img}">
                 <div class="mb-4">
@@ -133,6 +142,30 @@
                                 <img src="${ctx}/assets/images/products/${img}" alt="Current" style="max-width:200px; border-radius:var(--admin-radius); border:2px solid var(--admin-border);">
                             </c:otherwise>
                         </c:choose>
+                    </div>
+                </div>
+            </c:if>
+
+            <c:if test="${not empty product.imageUrlList and product.imageUrlList.size() > 1}">
+                <div class="mb-4">
+                    <label class="admin-form-label">Gallery hiện tại</label>
+                    <div style="display:flex; flex-wrap:wrap; gap:10px;">
+                        <c:forEach var="galleryImage" items="${product.imageUrlList}">
+                            <c:choose>
+                                <c:when test="${fn:startsWith(galleryImage, 'http://') or fn:startsWith(galleryImage, 'https://')}">
+                                    <img src="${galleryImage}" alt="Gallery" style="width:88px;height:88px;object-fit:cover;border-radius:10px;border:1px solid var(--admin-border);">
+                                </c:when>
+                                <c:when test="${fn:startsWith(galleryImage, '/')}">
+                                    <img src="${ctx}${galleryImage}" alt="Gallery" style="width:88px;height:88px;object-fit:cover;border-radius:10px;border:1px solid var(--admin-border);">
+                                </c:when>
+                                <c:when test="${fn:contains(galleryImage, 'assets/images/products')}">
+                                    <img src="${ctx}/${galleryImage}" alt="Gallery" style="width:88px;height:88px;object-fit:cover;border-radius:10px;border:1px solid var(--admin-border);">
+                                </c:when>
+                                <c:otherwise>
+                                    <img src="${ctx}/assets/images/products/${galleryImage}" alt="Gallery" style="width:88px;height:88px;object-fit:cover;border-radius:10px;border:1px solid var(--admin-border);">
+                                </c:otherwise>
+                            </c:choose>
+                        </c:forEach>
                     </div>
                 </div>
             </c:if>

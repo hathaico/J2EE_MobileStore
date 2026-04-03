@@ -63,12 +63,12 @@
                         <tr>
                             <th>ID</th>
                             <th>Tên sản phẩm</th>
-                            <th>Hãng</th>
-                            <th>Danh mục</th>
+                            <th class="text-center">Hãng</th>
+                            <th class="text-center">Danh mục</th>
                             <th>Giá</th>
-                            <th>Số lượng</th>
-                            <th>Trạng thái</th>
-                            <th>Thao tác</th>
+                            <th class="text-center">Số lượng</th>
+                            <th class="text-center">Trạng thái</th>
+                            <th class="text-center">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -76,7 +76,7 @@
                             <tr>
                                 <td><strong>${product.productId}</strong></td>
                                 <td>
-                                    <div class="product-cell">
+                                    <div class="product-cell product-cell--left">
                                         <c:set var="img" value="${fn:trim(product.imageUrl)}" />
                                         <c:choose>
                                             <c:when test="${empty img}">
@@ -103,8 +103,8 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td>${product.brand}</td>
-                                <td>
+                                <td class="text-center">${product.brand}</td>
+                                <td class="text-center">
                                     <span class="admin-badge admin-badge-gray">
                                         <c:choose>
                                             <c:when test="${not empty product.categoryName}">${product.categoryName}</c:when>
@@ -117,7 +117,7 @@
                                     <fmt:formatNumber value="${product.price}" pattern="#,##0 ₫"/>
                                 </td>
                                 <td class="text-center">${product.stockQuantity}</td>
-                                <td>
+                                <td class="text-center">
                                     <c:choose>
                                         <c:when test="${product.stockQuantity == 0}">
                                             <span class="admin-badge admin-badge-danger"><i class="bi bi-x-circle"></i> Hết hàng</span>

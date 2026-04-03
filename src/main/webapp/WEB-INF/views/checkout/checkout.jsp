@@ -303,6 +303,7 @@
     <script>
         // Form validation
         document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+            const vnpayDevModeActive = ${vnpayDevModeActive ? 'true' : 'false'};
             const name = document.getElementById('customerName').value.trim();
             const phone = document.getElementById('customerPhone').value.trim();
             const address = document.getElementById('shippingAddress').value.trim();
@@ -333,22 +334,42 @@
                     return false;
                 }
 
-                if (cardNumber.length < 13 || cardNumber.length > 19 || !luhnCheck(cardNumber)) {
-                    e.preventDefault();
-                    alert('Số thẻ ngân hàng không hợp lệ.');
-                    return false;
-                }
+                if (vnpayDevModeActive) {
+                    if (cardNumber.length < 8 || cardNumber.length > 19) {
+                        e.preventDefault();
+                        alert('Số thẻ ngân hàng không hợp lệ.');
+                        return false;
+                    }
 
-                if (!/^(0[1-9]|1[0-2])\/[0-9]{2}$/.test(expiry) || isExpired(expiry)) {
-                    e.preventDefault();
-                    alert('Ngày hết hạn thẻ không hợp lệ.');
-                    return false;
-                }
+                    if (!expiry) {
+                        e.preventDefault();
+                        alert('Vui lòng nhập ngày hết hạn thẻ.');
+                        return false;
+                    }
 
-                if (!/^[0-9]{3,4}$/.test(cvv)) {
-                    e.preventDefault();
-                    alert('Mã CVV/CVC không hợp lệ.');
-                    return false;
+                    if (!cvv) {
+                        e.preventDefault();
+                        alert('Vui lòng nhập mã CVV/CVC.');
+                        return false;
+                    }
+                } else {
+                    if (cardNumber.length < 13 || cardNumber.length > 19 || !luhnCheck(cardNumber)) {
+                        e.preventDefault();
+                        alert('Số thẻ ngân hàng không hợp lệ.');
+                        return false;
+                    }
+
+                    if (!/^(0[1-9]|1[0-2])\/[0-9]{2}$/.test(expiry) || isExpired(expiry)) {
+                        e.preventDefault();
+                        alert('Ngày hết hạn thẻ không hợp lệ.');
+                        return false;
+                    }
+
+                    if (!/^[0-9]{3,4}$/.test(cvv)) {
+                        e.preventDefault();
+                        alert('Mã CVV/CVC không hợp lệ.');
+                        return false;
+                    }
                 }
             }
             

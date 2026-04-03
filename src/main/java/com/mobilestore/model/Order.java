@@ -1,6 +1,7 @@
 package com.mobilestore.model;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 public class Order {
@@ -249,6 +250,16 @@ public class Order {
     public String getCreatedAtString() {
         if (createdAt == null) return "";
         return createdAt.toString().replace('T', ' ');
+    }
+
+    public String getCreatedAtFormatted() {
+        if (createdAt == null) return "";
+        return createdAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+    }
+
+    public String getUpdatedAtFormatted() {
+        if (updatedAt == null) return "";
+        return updatedAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
     }
 
     @Override

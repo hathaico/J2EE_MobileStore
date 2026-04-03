@@ -76,13 +76,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         <table class="admin-table" id="usersTable">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Tên đăng nhập</th>
-                                    <th>Họ tên</th>
-                                    <th>Email</th>
-                                    <th>Điện thoại</th>
-                                    <th>Quyền</th>
-                                    <th>Trạng thái</th>
+                                    <th class="text-center">ID</th>
+                                    <th class="text-center">Tên đăng nhập</th>
+                                    <th class="text-center">Họ tên</th>
+                                    <th class="text-center">Email</th>
+                                    <th class="text-center">Điện thoại</th>
+                                    <th class="text-center">Quyền</th>
+                                    <th class="text-center">Trạng thái</th>
                                     <th class="text-center">Thao tác</th>
                                     <th class="text-center">Mật khẩu</th>
                                 </tr>
@@ -99,12 +99,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </c:if>
                                 <c:forEach var="user" items="${users}">
                                     <tr>
-                                        <td>${user.userId}</td>
-                                        <td>${user.username}</td>
-                                        <td>${user.fullName}</td>
-                                        <td>${user.email}</td>
-                                        <td>${user.phone}</td>
-                                        <td>
+                                        <td class="text-center">${user.userId}</td>
+                                        <td class="text-center">${user.username}</td>
+                                        <td class="text-center">${user.fullName}</td>
+                                        <td class="text-center">${user.email}</td>
+                                        <td class="text-center">${user.phone}</td>
+                                        <td class="text-center">
                                             <c:choose>
                                                 <c:when test="${user.role == 'ADMIN'}">
                                                     <span class="admin-badge admin-badge-success rounded-pill px-3 py-2">Admin</span>
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                                 </c:otherwise>
                                             </c:choose>
                                         </td>
-                                        <td>
+                                        <td class="text-center">
                                             <c:choose>
                                                 <c:when test="${user.active}">
                                                     <span class="admin-badge admin-badge-success rounded-pill px-3 py-2">Hoạt động</span>
@@ -129,19 +129,19 @@ document.addEventListener('DOMContentLoaded', function() {
                                                     <span class="admin-badge admin-badge-danger rounded-pill px-3 py-2">Khoá</span>
                                                 </c:otherwise>
                                             </c:choose>
-                            </td>
-                            <td style="text-align:center;">
-                                <a href="${ctx}/admin/users?action=edit&id=${user.userId}" class="btn btn-outline-primary btn-sm rounded-3 d-inline-flex align-items-center justify-content-center" title="Sửa" style="min-width:36px;gap:4px;"><i class="bi bi-pencil"></i></a>
-                                <a href="${ctx}/admin/users?action=delete&id=${user.userId}" class="btn btn-outline-danger btn-sm rounded-3 d-inline-flex align-items-center justify-content-center" title="Xoá" style="min-width:36px;gap:4px;" onclick="return confirm('Xác nhận xoá người dùng này?');"><i class="bi bi-trash"></i></a>
-                            </td>
-                            <td style="text-align:center;">
-                                <button type="button" class="btn btn-outline-secondary btn-sm rounded-3 d-inline-flex align-items-center justify-content-center btn-reset-pw" data-user-id="${user.userId}" data-username="${user.username}" title="Reset mật khẩu" style="min-width:36px;gap:4px;"><i class="bi bi-key"></i></button>
-                            </td>
+                                        </td>
+                                        <td class="text-center">
+                                            <a href="${ctx}/admin/users?action=edit&id=${user.userId}" class="btn btn-outline-primary btn-sm rounded-3 d-inline-flex align-items-center justify-content-center" title="Sửa" style="min-width:36px;gap:4px;"><i class="bi bi-pencil"></i></a>
+                                            <a href="${ctx}/admin/users?action=delete&id=${user.userId}" class="btn btn-outline-danger btn-sm rounded-3 d-inline-flex align-items-center justify-content-center" title="Xoá" style="min-width:36px;gap:4px;" onclick="return confirm('Xác nhận xoá người dùng này?');"><i class="bi bi-trash"></i></a>
+                                        </td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-3 d-inline-flex align-items-center justify-content-center btn-reset-pw" data-user-id="${user.userId}" data-username="${user.username}" title="Reset mật khẩu" style="min-width:36px;gap:4px;"><i class="bi bi-key"></i></button>
+                                        </td>
                         </tr>
                     </c:forEach>
                     <c:if test="${empty users}">
                         <tr>
-                            <td colspan="8">
+                            <td colspan="9">
                                 <div class="admin-empty-state py-5">
                                     <i class="bi bi-inbox" style="font-size:2rem;"></i>
                                     <p class="mt-2 mb-0">Chưa có người dùng nào</p>

@@ -1889,9 +1889,11 @@ img {
 }
 
 .brand-wordmark--google {
-    color: #4285f4;
-    font-weight: 500;
+    font-weight: 700;
     letter-spacing: 0.02em;
+    display: inline;
+    line-height: 1.2;
+    transition: transform 0.2s ease, text-shadow 0.2s ease;
 }
 
 .brand-wordmark--motorola {
@@ -1919,7 +1921,11 @@ img {
 .brand-card:hover .brand-wordmark--realme,
 .brand-card:hover .brand-wordmark--huawei,
 .brand-card:hover .brand-wordmark--oneplus,
-.brand-card:hover .brand-wordmark--google,
+.brand-card:hover .brand-wordmark--google {
+    color: var(--brand-accent);
+}
+
+.brand-card:hover .brand-wordmark--apple,
 .brand-card:hover .brand-wordmark--motorola {
     color: var(--brand-accent);
 }
@@ -2068,6 +2074,14 @@ img {
     color: var(--brand-accent);
     transform: scale(1.02);
     letter-spacing: 0.09em;
+}
+
+/* Override hover state for Google to maintain multi-color effect */
+.brand-filter-item--google:hover .brand-wordmark--google,
+.brand-filter-item--google.active .brand-wordmark--google,
+.brand-filter-item--google.selected .brand-wordmark--google {
+    transform: scale(1.05);
+    text-shadow: 0 2px 8px rgba(66, 133, 244, 0.3);
 }
 
 .brand-filter-item--apple { --brand-accent: #6b7280; }

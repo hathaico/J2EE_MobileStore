@@ -65,7 +65,7 @@
                     </div>
                     <div class="col-sm-6">
                         <div style="font-size:0.82rem; color:var(--admin-text-muted); margin-bottom:4px;">Ngày đặt</div>
-                        <div style="font-weight:600;"><fmt:formatDate value="${order.createdAt}" pattern="dd/MM/yyyy HH:mm"/></div>
+                        <div style="font-weight:600;">${order.createdAtFormatted}</div>
                     </div>
                 </div>
 
@@ -77,7 +77,7 @@
                     <c:if test="${order.updatedAt != null}">
                         <div class="col-sm-6">
                             <div style="font-size:0.82rem; color:var(--admin-text-muted); margin-bottom:4px;">Cập nhật lần cuối</div>
-                            <div style="font-weight:600;"><fmt:formatDate value="${order.updatedAt}" pattern="dd/MM/yyyy HH:mm"/></div>
+                            <div style="font-weight:600;">${order.updatedAtFormatted}</div>
                         </div>
                     </c:if>
                 </div>
@@ -123,21 +123,21 @@
                     <table class="admin-table">
                         <thead>
                             <tr>
-                                <th>Sản phẩm</th>
-                                <th style="text-align:center;">Số lượng</th>
-                                <th style="text-align:right;">Đơn giá</th>
-                                <th style="text-align:right;">Thành tiền</th>
+                                <th class="text-center">Sản phẩm</th>
+                                <th class="text-center">Số lượng</th>
+                                <th class="text-center">Đơn giá</th>
+                                <th class="text-center">Thành tiền</th>
                             </tr>
                         </thead>
                         <tbody>
                             <c:forEach var="item" items="${order.orderItems}">
                                 <tr>
                                     <td style="font-weight:600;">${item.productName}</td>
-                                    <td style="text-align:center;">${item.quantity}</td>
-                                    <td style="text-align:right;">
+                                    <td>${item.quantity}</td>
+                                    <td>
                                         <fmt:formatNumber value="${item.price}" type="currency" currencyCode="VND" pattern="#,##0 ₫"/>
                                     </td>
-                                    <td style="text-align:right; font-weight:700;">
+                                    <td style="font-weight:700;">
                                         <fmt:formatNumber value="${item.subtotal}" type="currency" currencyCode="VND" pattern="#,##0 ₫"/>
                                     </td>
                                 </tr>
@@ -145,7 +145,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div style="padding:16px 20px; border-top:2px solid var(--admin-border); display:flex; justify-content:flex-end; align-items:center; gap:12px;">
+                <div style="padding:16px 20px; border-top:2px solid var(--admin-border); display:flex; justify-content:center; align-items:center; gap:12px;">
                     <span style="font-weight:600; color:var(--admin-text-secondary);">Tổng cộng:</span>
                     <span style="font-size:1.25rem; font-weight:800; color:var(--admin-danger);">
                         <fmt:formatNumber value="${order.totalAmount}" type="currency" currencyCode="VND" pattern="#,##0 ₫"/>

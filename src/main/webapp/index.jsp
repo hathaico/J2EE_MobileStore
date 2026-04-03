@@ -79,7 +79,7 @@
             <a href="${pageContext.request.contextPath}/products?brand=Realme" class="brand-card brand-card--realme"><span class="brand-wordmark brand-wordmark--realme">realme</span></a>
             <a href="${pageContext.request.contextPath}/products?brand=Huawei" class="brand-card brand-card--huawei"><span class="brand-wordmark brand-wordmark--huawei">HUAWEI</span></a>
             <a href="${pageContext.request.contextPath}/products?brand=OnePlus" class="brand-card brand-card--oneplus"><span class="brand-wordmark brand-wordmark--oneplus">OnePlus</span></a>
-            <a href="${pageContext.request.contextPath}/products?brand=Google" class="brand-card brand-card--google"><span class="brand-wordmark brand-wordmark--google">Google</span></a>
+            <a href="${pageContext.request.contextPath}/products?brand=Google" class="brand-card brand-card--google"><span class="brand-wordmark brand-wordmark--google"><span style="color: #4285f4;">G</span><span style="color: #ea4335;">o</span><span style="color: #fbbc04;">o</span><span style="color: #4285f4;">g</span><span style="color: #34a853;">l</span><span style="color: #ea4335;">e</span></span></a>
             <a href="${pageContext.request.contextPath}/products?brand=Motorola" class="brand-card brand-card--motorola"><span class="brand-wordmark brand-wordmark--motorola">motorola</span></a>
         </div>
     </div>

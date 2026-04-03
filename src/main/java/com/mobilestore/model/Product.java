@@ -2,6 +2,10 @@ package com.mobilestore.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Product Model
@@ -20,6 +24,7 @@ public class Product {
     private String categoryName; // For JOIN queries
     private String description;
     private String imageUrl;
+    private String imageUrls;
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -134,6 +139,14 @@ public class Product {
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
     }
+
+    public String getImageUrls() {
+        return imageUrls;
+    }
+
+    public void setImageUrls(String imageUrls) {
+        this.imageUrls = imageUrls;
+    }
     
     public Boolean getIsActive() {
         return isActive;
@@ -181,6 +194,23 @@ public class Product {
     public String getFormattedPrice() {
         if (price == null) return "0 VNĐ";
         return String.format("%,.0f VNĐ", price);
+    }
+
+    public List<String> getImageUrlList() {
+        List<String> urls = new ArrayList<>();
+
+        if (imageUrl != null && !imageUrl.trim().isEmpty()) {
+            urls.add(imageUrl.trim());
+        }
+
+        if (imageUrls != null && !imageUrls.trim().isEmpty()) {
+            Arrays.stream(imageUrls.split(","))
+                    .map(value -> value == null ? "" : value.trim())
+                    .filter(value -> !value.isEmpty())
+                    .forEach(urls::add);
+        }
+
+        return Collections.unmodifiableList(urls);
     }
     
     @Override

@@ -12,31 +12,31 @@
             <table class="admin-table align-middle">
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Sản phẩm</th>
-                        <th>Người đánh giá</th>
-                        <th>Điểm</th>
-                        <th>Bình luận</th>
-                        <th>Ngày tạo</th>
-                        <th>Trạng thái</th>
-                        <th>Hành động</th>
+                        <th class="text-center">ID</th>
+                        <th class="text-center">Sản phẩm</th>
+                        <th class="text-center">Người đánh giá</th>
+                        <th class="text-center">Điểm</th>
+                        <th class="text-center">Bình luận</th>
+                        <th class="text-center">Ngày tạo</th>
+                        <th class="text-center">Trạng thái</th>
+                        <th class="text-center">Hành động</th>
                     </tr>
                 </thead>
                 <tbody>
                     <c:forEach var="review" items="${reviews}">
                         <tr>
-                            <td>${review.reviewId}</td>
-                            <td>${review.productId}</td>
-                            <td>${review.userName}</td>
-                            <td>
+                            <td class="text-center">${review.reviewId}</td>
+                            <td class="text-center">${review.productId}</td>
+                            <td class="text-center">${review.userName}</td>
+                            <td class="text-center">
                                 <span class="d-inline-flex align-items-center gap-1 fw-semibold">
                                     ${review.rating}
                                     <i class="bi bi-star-fill admin-text-warning" style="color:#ffc107;font-size:1.1em;"></i>
                                 </span>
                             </td>
-                            <td>${review.comment}</td>
-                            <td>${review.createdAt}</td>
-                            <td>
+                            <td class="text-center">${review.comment}</td>
+                            <td class="text-center">${review.createdAt}</td>
+                            <td class="text-center">
                                 <c:choose>
                                     <c:when test="${review.approved}">
                                         <span class="admin-badge admin-badge-success rounded-pill px-3 py-2">Đã duyệt</span>
@@ -46,8 +46,8 @@
                                     </c:otherwise>
                                 </c:choose>
                             </td>
-                            <td>
-                                <div class="d-flex gap-2 flex-wrap">
+                            <td class="text-center">
+                                <div class="d-flex gap-2 flex-wrap justify-content-center">
                                     <c:choose>
                                         <c:when test="${!review.approved}">
                                             <a href="${ctx}/admin/reviews?action=approve&id=${review.reviewId}" class="btn btn-success btn-sm rounded-3 d-inline-flex align-items-center gap-1" title="Duyệt"><i class="bi bi-check-circle"></i> Duyệt</a>

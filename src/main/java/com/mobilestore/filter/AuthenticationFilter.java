@@ -1,6 +1,7 @@
 package com.mobilestore.filter;
 
 import com.mobilestore.model.User;
+import com.mobilestore.service.NotificationService;
 
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
@@ -12,13 +13,15 @@ import java.io.IOException;
 /**
  * Authentication Filter
  * Protects admin pages from unauthorized access
+ * Also injects notification data for all admin pages
  */
 @WebFilter("/admin/*")
 public class AuthenticationFilter implements Filter {
+    private NotificationService notificationService;
     
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
-        // Initialization code if needed
+        this.notificationService = new NotificationService();
     }
     
     @Override
@@ -54,6 +57,16 @@ public class AuthenticationFilter implements Filter {
         if (!"ADMIN".equals(user.getRole()) && !"STAFF".equals(user.getRole())) {
             httpResponse.sendRedirect(httpRequest.getContextPath() + "/403.jsp");
             return;
+        }
+        
+        // Add notification data to all admin pages
+        try {
+            httpRequest.setAttribute("notifications", notificationService.getNotifications());
+            httpRequest.setAttribute("totalNotificationCount", notificationService.getTotalNotificationCount());
+            httpRequest.setAttribute("hasNotifications", notificationService.hasNotifications());
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Continue even if notification service fails
         }
         
         // User is authenticated and authorized, continue

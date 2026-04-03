@@ -255,7 +255,7 @@ public class ProductDAO extends BaseDAO {
      */
     public int createProduct(Product product) {
         String sql = "INSERT INTO products (product_name, brand, model, color, capacity, price, stock_quantity, " +
-                    "category_id, description, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "category_id, description, image_url, image_urls) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         Connection conn = null;
         PreparedStatement stmt = null;
@@ -274,6 +274,7 @@ public class ProductDAO extends BaseDAO {
             stmt.setObject(8, product.getCategoryId());
             stmt.setString(9, product.getDescription());
             stmt.setString(10, product.getImageUrl());
+            stmt.setString(11, product.getImageUrls());
             
             int affectedRows = stmt.executeUpdate();
             
@@ -300,7 +301,7 @@ public class ProductDAO extends BaseDAO {
      */
     public boolean updateProduct(Product product) {
         String sql = "UPDATE products SET product_name = ?, brand = ?, model = ?, color = ?, capacity = ?, price = ?, " +
-                    "stock_quantity = ?, category_id = ?, description = ?, image_url = ? " +
+                    "stock_quantity = ?, category_id = ?, description = ?, image_url = ?, image_urls = ? " +
                     "WHERE product_id = ?";
         
         try {
@@ -315,6 +316,7 @@ public class ProductDAO extends BaseDAO {
                 product.getCategoryId(),
                 product.getDescription(),
                 product.getImageUrl(),
+                product.getImageUrls(),
                 product.getProductId()
             );
             return affectedRows > 0;
@@ -434,6 +436,7 @@ public class ProductDAO extends BaseDAO {
         product.setColor(rs.getString("color"));
         product.setCapacity(rs.getString("capacity"));
         product.setImageUrl(rs.getString("image_url"));
+        product.setImageUrls(rs.getString("image_urls"));
         product.setIsActive(rs.getBoolean("is_active"));
         
         Timestamp createdAt = rs.getTimestamp("created_at");

@@ -63,27 +63,27 @@
             <table class="admin-table align-middle" id="ordersTable" style="margin-bottom:0;">
                 <thead>
                     <tr>
-                        <th>Mã ĐH</th>
-                        <th>Khách hàng</th>
-                        <th class="text-end">Tổng tiền</th>
-                        <th>Trạng thái</th>
-                        <th>Thanh toán</th>
-                        <th>Ngày đặt</th>
+                        <th class="text-center">Mã ĐH</th>
+                        <th class="text-center">Khách hàng</th>
+                        <th class="text-center">Tổng tiền</th>
+                        <th class="text-center">Trạng thái</th>
+                        <th class="text-center">Thanh toán</th>
+                        <th class="text-center">Ngày đặt</th>
                         <th class="text-center">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     <c:forEach var="order" items="${orders}">
                         <tr>
-                            <td><strong>#${order.orderId}</strong></td>
-                            <td>
+                            <td class="text-center"><strong>#${order.orderId}</strong></td>
+                            <td class="text-center">
                                 <div class="fw-bold">${order.customerName}</div>
                                 <div class="text-muted small">${order.customerPhone}</div>
                             </td>
-                            <td style="text-align:right; font-weight:700;">
+                            <td class="text-center" style="font-weight:700;">
                                 <fmt:formatNumber value="${order.totalAmount}" type="currency" currencyCode="VND" pattern="#,##0 ₫"/>
                             </td>
-                            <td>
+                            <td class="text-center">
                                 <c:choose>
                                     <c:when test="${order.status == 'PENDING'}">
                                         <span class="admin-badge admin-badge-warning rounded-pill px-3 py-2"><i class="bi bi-clock"></i> Chờ xác nhận</span>
@@ -105,7 +105,7 @@
                                     </c:otherwise>
                                 </c:choose>
                             </td>
-                            <td>
+                            <td class="text-center">
                                 <c:choose>
                                     <c:when test="${order.paymentStatus == 'PAID'}">
                                         <span class="admin-badge admin-badge-success rounded-pill px-3 py-2"><i class="bi bi-check"></i> Đã TT</span>
@@ -115,10 +115,10 @@
                                     </c:otherwise>
                                 </c:choose>
                             </td>
-                            <td style="font-size:0.85rem; color:var(--admin-text-secondary);">
+                            <td class="text-center" style="font-size:0.85rem; color:var(--admin-text-secondary);">
                                 <span class="text-muted small">${order.createdAtString}</span>
                             </td>
-                            <td style="text-align:center;">
+                            <td class="text-center">
                                 <c:choose>
                                     <c:when test="${order.status == 'PENDING'}">
                                         <div class="btn-group gap-2 d-flex justify-content-center" role="group">

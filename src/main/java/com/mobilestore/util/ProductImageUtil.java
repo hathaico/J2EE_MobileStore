@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -76,5 +78,44 @@ public final class ProductImageUtil {
         Path target = dir.resolve(filename);
         part.write(target.toString());
         return filename;
+    }
+
+    public static List<String> saveUploadedProductImages(HttpServletRequest request, String partName)
+            throws IOException, ServletException {
+        List<String> filenames = new ArrayList<>();
+
+        for (Part part : request.getParts()) {
+            if (part == null || !partName.equals(part.getName()) || part.getSize() == 0) {
+                continue;
+            }
+
+            String submitted = part.getSubmittedFileName();
+            if (submitted == null || submitted.isBlank()) {
+                continue;
+            }
+
+            String ext = "";
+            int dot = submitted.lastIndexOf('.');
+            if (dot >= 0) {
+                ext = submitted.substring(dot).toLowerCase(Locale.ROOT);
+            }
+            if (!ext.matches("\\.(jpg|jpeg|png|gif|webp|svg)")) {
+                continue;
+            }
+
+            String baseDir = request.getServletContext().getRealPath(RELATIVE_DIR);
+            if (baseDir == null) {
+                continue;
+            }
+
+            Path dir = Paths.get(baseDir);
+            Files.createDirectories(dir);
+            String filename = UUID.randomUUID().toString().replace("-", "") + ext;
+            Path target = dir.resolve(filename);
+            part.write(target.toString());
+            filenames.add(filename);
+        }
+
+        return filenames;
     }
 }

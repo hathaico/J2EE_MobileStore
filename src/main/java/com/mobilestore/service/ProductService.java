@@ -266,9 +266,12 @@ public class ProductService {
             throw new IllegalArgumentException("Category is required");
         }
         
-        // Image URL
+        // Image URL / gallery
         if (product.getImageUrl() != null && product.getImageUrl().length() > 255) {
             throw new IllegalArgumentException("Image URL is too long (max 255 characters)");
+        }
+        if (product.getImageUrls() != null && product.getImageUrls().length() > 2000) {
+            throw new IllegalArgumentException("Gallery image list is too long (max 2000 characters)");
         }
     }
 }

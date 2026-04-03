@@ -25,11 +25,25 @@
                 <!-- Main Image -->
                 <div class="product-detail-gallery">
                     <c:choose>
-                        <c:when test="${not empty product.imageUrl}">
+                        <c:when test="${not empty product.imageUrlList and product.imageUrlList.size() > 0}">
+                            <c:set var="mainImageUrl" value="${product.imageUrlList[0]}" />
                             <div class="product-detail-gallery__frame">
-                                <img src="<ms:productImageSrc url="${product.imageUrl}" />"
+                                <img src="<ms:productImageSrc url="${mainImageUrl}" />"
                                      alt="${product.productName}">
                             </div>
+                            <c:if test="${product.imageUrlList.size() > 1}">
+                                <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:1rem;">
+                                    <c:forEach var="galleryImage" items="${product.imageUrlList}" varStatus="status">
+                                        <c:if test="${status.index > 0}">
+                                            <div style="width:72px; height:72px; border-radius:12px; overflow:hidden; border:1px solid var(--gray-200); background:white;">
+                                                <img src="<ms:productImageSrc url="${galleryImage}" />"
+                                                     alt="${product.productName}"
+                                                     style="width:100%; height:100%; object-fit:cover;">
+                                            </div>
+                                        </c:if>
+                                    </c:forEach>
+                                </div>
+                            </c:if>
                         </c:when>
                         <c:otherwise>
                             <div class="product-detail-gallery__frame product-detail-gallery__frame--empty">
@@ -275,16 +289,9 @@
         <div class="tab-content" style="background: white; padding: 2rem; border-radius: 0 0 12px 12px; box-shadow: var(--shadow-md);">
             <!-- Specifications Tab -->
             <div class="tab-pane fade show active" id="specs">
-                <div style="max-width: 900px; margin: 0 auto;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-                        <h4 style="margin: 0; font-size: 1.8rem; font-weight: 700; color: #1F2937;">Thông số kỹ thuật</h4>
-                        <a href="#reviews" data-bs-toggle="tab" class="nav-link" style="padding: 0; color: #2563EB; font-weight: 600; font-size: 0.95rem;">
-                            Xem tất cả <i class="bi bi-chevron-right" style="font-size: 0.85rem;"></i>
-                        </a>
-                    </div>
-
-                    <div style="border: 1px solid #D1D5DB; border-radius: 12px; overflow: hidden; background: #FFFFFF;">
-                        <table style="width: 100%; border-collapse: collapse; font-size: 1.02rem; color: #374151;">
+                <div style="width: 100%;">
+                    <div style="border: 1px solid #D1D5DB; border-radius: 12px; overflow: hidden; background: #FFFFFF; width: 100%;">
+                        <table style="width: 100%; min-width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 1.02rem; color: #374151;">
                             <tbody>
                                 <tr>
                                     <th style="width: 31%; padding: 10px 14px; background: #F3F4F6; border-right: 1px solid #D1D5DB; border-bottom: 1px solid #D1D5DB; font-weight: 500; text-align: left;">Thương hiệu</th>

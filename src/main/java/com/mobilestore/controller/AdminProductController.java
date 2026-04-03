@@ -15,6 +15,8 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.List;
 
 /**
@@ -22,7 +24,7 @@ import java.util.List;
  * Handles admin product management requests
  */
 @WebServlet("/admin/products")
-@MultipartConfig(maxFileSize = 5 * 1024 * 1024, maxRequestSize = 10 * 1024 * 1024, fileSizeThreshold = 0)
+@MultipartConfig(maxFileSize = 5 * 1024 * 1024, maxRequestSize = 20 * 1024 * 1024, fileSizeThreshold = 0)
 public class AdminProductController extends HttpServlet {
     private ProductService productService;
     private CategoryService categoryService;
@@ -261,6 +263,9 @@ public class AdminProductController extends HttpServlet {
         } else {
             product.setImageUrl(request.getParameter("imageUrl"));
         }
+
+        List<String> galleryImages = ProductImageUtil.saveUploadedProductImages(request, "productImageFiles");
+        product.setImageUrls(mergeGalleryImages(request.getParameter("imageUrls"), galleryImages));
         
         String priceStr = request.getParameter("price");
         if (ValidationUtil.isDecimal(priceStr)) {
@@ -281,5 +286,32 @@ public class AdminProductController extends HttpServlet {
         }
         
         return product;
+    }
+
+    private String mergeGalleryImages(String existingImageUrls, List<String> uploadedImages) {
+        Set<String> merged = new LinkedHashSet<>();
+
+        if (existingImageUrls != null && !existingImageUrls.trim().isEmpty()) {
+            String[] currentImages = existingImageUrls.split(",");
+            for (String currentImage : currentImages) {
+                if (currentImage != null && !currentImage.trim().isEmpty()) {
+                    merged.add(currentImage.trim());
+                }
+            }
+        }
+
+        if (uploadedImages != null) {
+            for (String uploadedImage : uploadedImages) {
+                if (uploadedImage != null && !uploadedImage.trim().isEmpty()) {
+                    merged.add(uploadedImage.trim());
+                }
+            }
+        }
+
+        if (merged.isEmpty()) {
+            return null;
+        }
+
+        return String.join(",", merged);
     }
 }

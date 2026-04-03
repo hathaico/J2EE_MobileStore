@@ -60,6 +60,7 @@ CREATE TABLE products (
     category_id INT,
     description TEXT,
     image_url VARCHAR(255),
+    image_urls TEXT,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

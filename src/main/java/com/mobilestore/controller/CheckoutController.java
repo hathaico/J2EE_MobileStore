@@ -135,18 +135,33 @@ public class CheckoutController extends HttpServlet {
                 String cardNumber = request.getParameter("cardNumber");
                 String cardExpiry = request.getParameter("cardExpiry");
                 String cardCvv = request.getParameter("cardCvv");
+                boolean safeLocalDevMode = isSafeDevModeRequest(request);
 
                 if (cardHolderName == null || cardHolderName.trim().isEmpty()) {
                     throw new IllegalArgumentException("Vui lòng nhập tên chủ thẻ.");
                 }
-                if (!PaymentCardUtil.isValidCardNumber(cardNumber)) {
-                    throw new IllegalArgumentException("Số thẻ ngân hàng không hợp lệ.");
-                }
-                if (!PaymentCardUtil.isValidExpiry(cardExpiry)) {
-                    throw new IllegalArgumentException("Ngày hết hạn thẻ không hợp lệ.");
-                }
-                if (!PaymentCardUtil.isValidCvv(cardCvv)) {
-                    throw new IllegalArgumentException("Mã CVV/CVC không hợp lệ.");
+
+                if (safeLocalDevMode) {
+                    String normalizedCard = PaymentCardUtil.normalizeCardNumber(cardNumber);
+                    if (normalizedCard.length() < 8 || normalizedCard.length() > 19) {
+                        throw new IllegalArgumentException("Số thẻ ngân hàng không hợp lệ.");
+                    }
+                    if (cardExpiry == null || cardExpiry.trim().isEmpty()) {
+                        throw new IllegalArgumentException("Vui lòng nhập ngày hết hạn thẻ.");
+                    }
+                    if (cardCvv == null || cardCvv.trim().isEmpty()) {
+                        throw new IllegalArgumentException("Vui lòng nhập mã CVV/CVC.");
+                    }
+                } else {
+                    if (!PaymentCardUtil.isValidCardNumber(cardNumber)) {
+                        throw new IllegalArgumentException("Số thẻ ngân hàng không hợp lệ.");
+                    }
+                    if (!PaymentCardUtil.isValidExpiry(cardExpiry)) {
+                        throw new IllegalArgumentException("Ngày hết hạn thẻ không hợp lệ.");
+                    }
+                    if (!PaymentCardUtil.isValidCvv(cardCvv)) {
+                        throw new IllegalArgumentException("Mã CVV/CVC không hợp lệ.");
+                    }
                 }
 
                 String maskedCard = PaymentCardUtil.maskCardNumber(cardNumber);

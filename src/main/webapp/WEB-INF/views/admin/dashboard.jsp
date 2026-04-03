@@ -246,26 +246,26 @@
                     <table class="admin-table">
                         <thead>
                             <tr>
-                                <th>Mã ĐH</th>
-                                <th>Khách hàng</th>
-                                <th>Tổng tiền</th>
-                                <th>Trạng thái</th>
-                                <th>Thanh toán</th>
+                                <th class="text-center">Mã ĐH</th>
+                                <th class="text-center">Khách hàng</th>
+                                <th class="text-center">Tổng tiền</th>
+                                <th class="text-center">Trạng thái</th>
+                                <th class="text-center">Thanh toán</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody>
                             <c:forEach var="order" items="${recentOrders}">
                                 <tr>
-                                    <td><strong>#${order.orderId}</strong></td>
-                                    <td>
+                                    <td class="text-center"><strong>#${order.orderId}</strong></td>
+                                    <td class="text-center">
                                         <div style="font-weight:600;">${order.customerName}</div>
                                         <div style="font-size:0.78rem;color:var(--admin-text-muted);">${order.customerPhone}</div>
                                     </td>
-                                    <td style="font-weight:700;">
+                                    <td class="text-center" style="font-weight:700;">
                                         <fmt:formatNumber value="${order.totalAmount}" type="currency" currencyCode="VND" pattern="#,##0 ₫"/>
                                     </td>
-                                    <td>
+                                    <td class="text-center">
                                         <c:choose>
                                             <c:when test="${order.status == 'PENDING'}">
                                                 <span class="admin-badge admin-badge-warning rounded-pill px-3 py-2"><i class="bi bi-clock"></i> Chờ xác nhận</span>
@@ -287,7 +287,7 @@
                                             </c:otherwise>
                                         </c:choose>
                                     </td>
-                                    <td>
+                                    <td class="text-center">
                                         <c:choose>
                                             <c:when test="${order.paymentStatus == 'PAID'}">
                                                 <span class="admin-badge admin-badge-success rounded-pill px-3 py-2"><i class="bi bi-check"></i> Đã TT</span>
@@ -297,7 +297,7 @@
                                             </c:otherwise>
                                         </c:choose>
                                     </td>
-                                    <td>
+                                    <td class="text-center">
                                         <a href="${ctx}/admin/orders?action=detail&id=${order.orderId}" class="btn btn-outline-primary btn-sm rounded-3 d-inline-flex align-items-center justify-content-center" title="Xem" style="min-width:36px;gap:4px;">
                                             <i class="bi bi-eye"></i>
                                         </a>

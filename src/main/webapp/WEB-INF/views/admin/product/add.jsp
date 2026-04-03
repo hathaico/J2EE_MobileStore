@@ -154,6 +154,13 @@
                         <input type="file" id="productImageFile" name="productImageFile" accept="image/*" class="file-upload-input" />
                         <input type="hidden" id="imageUrl" name="imageUrl" value="${param.imageUrl}" />
 
+                        <div class="mt-3">
+                            <label class="admin-form-label">Ảnh bổ sung</label>
+                            <input type="file" id="productImageFiles" name="productImageFiles" accept="image/*" class="form-control" multiple>
+                            <div class="admin-form-hint mb-0 mt-2">Bạn có thể chọn nhiều ảnh để hiển thị ở trang chi tiết sản phẩm.</div>
+                            <input type="hidden" id="imageUrls" name="imageUrls" value="${param.imageUrls}" />
+                        </div>
+
                         <p class="admin-form-hint mb-0 mt-2">Nếu ảnh đã có trên server, chỉ cần nhập tên file (trong <code class="small">/assets/images/products/</code>).</p>
 
                         <hr class="my-4 opacity-25">

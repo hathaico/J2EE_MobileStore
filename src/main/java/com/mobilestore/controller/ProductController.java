@@ -2,6 +2,7 @@ package com.mobilestore.controller;
 
 import com.mobilestore.model.Category;
 import com.mobilestore.model.Product;
+import com.mobilestore.service.ProductReviewService;
 import com.mobilestore.service.CategoryService;
 import com.mobilestore.service.ProductService;
 import com.mobilestore.util.ValidationUtil;
@@ -24,11 +25,13 @@ import java.util.List;
 public class ProductController extends HttpServlet {
     private ProductService productService;
     private CategoryService categoryService;
+    private ProductReviewService productReviewService;
     
     @Override
     public void init() throws ServletException {
         productService = new ProductService();
         categoryService = new CategoryService();
+        productReviewService = new ProductReviewService();
     }
     
     @Override
@@ -243,7 +246,7 @@ public class ProductController extends HttpServlet {
             
             for (String capacity : capacities) {
                 for (Product p : filteredProducts) {
-                    if (p.getCapacity() != null && p.getCapacity().equalsIgnoreCase(capacity)) {
+                    if (matchesCapacity(p.getCapacity(), capacity)) {
                         if (!capacityFiltered.contains(p)) {
                             capacityFiltered.add(p);
                         }
@@ -251,6 +254,39 @@ public class ProductController extends HttpServlet {
                 }
             }
             filteredProducts = capacityFiltered;
+        }
+
+        // Filter by minimum rating(s): selecting multiple values means "x stars and up"
+        String ratingsParam = request.getParameter("ratings");
+        if (ratingsParam != null && !ratingsParam.isEmpty()) {
+            String[] ratings = ratingsParam.split(";");
+            int minRating = Integer.MAX_VALUE;
+
+            for (String rating : ratings) {
+                try {
+                    int parsed = Integer.parseInt(rating.trim());
+                    if (parsed >= 1 && parsed <= 5 && parsed < minRating) {
+                        minRating = parsed;
+                    }
+                } catch (NumberFormatException ignored) {
+                    // Skip invalid rating values
+                }
+            }
+
+            if (minRating != Integer.MAX_VALUE) {
+                List<Product> ratingFiltered = new ArrayList<>();
+                for (Product p : filteredProducts) {
+                    if (p.getProductId() == null) {
+                        continue;
+                    }
+
+                    double avgRating = productReviewService.getAverageRating(p.getProductId());
+                    if (avgRating >= minRating) {
+                        ratingFiltered.add(p);
+                    }
+                }
+                filteredProducts = ratingFiltered;
+            }
         }
         
         // Filter by colors
@@ -296,6 +332,33 @@ public class ProductController extends HttpServlet {
         request.setAttribute("totalProducts", filteredProducts.size());
         
         request.getRequestDispatcher("/WEB-INF/views/product/list.jsp").forward(request, response);
+    }
+
+    private boolean matchesCapacity(String productCapacity, String selectedCapacity) {
+        if (productCapacity == null || selectedCapacity == null) {
+            return false;
+        }
+
+        String normalizedSelected = normalizeCapacity(selectedCapacity);
+        if (normalizedSelected.isEmpty()) {
+            return false;
+        }
+
+        String[] tokens = productCapacity.split("[,;/\\|]");
+        for (String token : tokens) {
+            if (normalizeCapacity(token).equals(normalizedSelected)) {
+                return true;
+            }
+        }
+
+        return normalizeCapacity(productCapacity).equals(normalizedSelected);
+    }
+
+    private String normalizeCapacity(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim().replace(" ", "").toUpperCase();
     }
     
     /**

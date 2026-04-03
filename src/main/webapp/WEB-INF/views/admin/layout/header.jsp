@@ -108,10 +108,63 @@
                     <i class="bi bi-shop"></i> Xem cửa hàng
                 </a>
 
-                <button class="admin-header-btn" title="Thông báo">
-                    <i class="bi bi-bell"></i>
-                    <span class="badge-dot"></span>
-                </button>
+                <!-- Notification Bell Button -->
+                <div style="position: relative;">
+                    <button class="admin-notification-btn" id="notificationBell" title="Thông báo">
+                        <i class="bi bi-bell"></i>
+                        <c:if test="${hasNotifications}">
+                            <span class="notification-badge-count">${totalNotificationCount}</span>
+                        </c:if>
+                    </button>
+                    
+                    <!-- Notification Panel -->
+                    <div class="admin-notification-panel" id="notificationDropdown">
+                        <!-- Panel Header -->
+                        <div class="notification-panel-header">
+                            <div class="notification-panel-title">
+                                <i class="bi bi-bell-fill"></i>
+                                <span>Thông báo</span>
+                            </div>
+                            <button type="button" class="notification-panel-close" id="closeNotification">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Panel Divider -->
+                        <div class="notification-panel-divider"></div>
+                        
+                        <!-- Panel Content -->
+                        <div class="notification-panel-content">
+                            <c:choose>
+                                <c:when test="${not empty notifications and notifications.size() > 0}">
+                                    <c:forEach items="${notifications}" var="notif">
+                                        <a href="${ctx}${notif.actionUrl}" class="notification-item-wrapper">
+                                            <div class="notification-item">
+                                                <div class="notification-icon-box ${notif.color}">
+                                                    <i class="bi ${notif.icon}"></i>
+                                                </div>
+                                                <div class="notification-info">
+                                                    <div class="notification-item-title">${notif.title}</div>
+                                                    <div class="notification-item-desc">${notif.message}</div>
+                                                </div>
+                                                <div class="notification-item-badge">${notif.count}</div>
+                                            </div>
+                                        </a>
+                                    </c:forEach>
+                                </c:when>
+                                <c:otherwise>
+                                    <div class="notification-empty-state">
+                                        <div class="notification-empty-icon">
+                                            <i class="bi bi-inbox"></i>
+                                        </div>
+                                        <p class="notification-empty-text">Bạn đã hoàn thành tất cả</p>
+                                        <p class="notification-empty-subtext">Không có thông báo mới</p>
+                                    </div>
+                                </c:otherwise>
+                            </c:choose>
+                        </div>
+                    </div>
+                </div>
 
                 <div style="position:relative;">
                     <div class="admin-header-profile" id="profileToggle">
@@ -133,6 +186,53 @@
                 </div>
             </div>
         </header>
+
+        <script>
+        // Notification Dropdown Toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const notificationBell = document.getElementById('notificationBell');
+            const notificationDropdown = document.getElementById('notificationDropdown');
+            const closeNotificationBtn = document.getElementById('closeNotification');
+            const profileToggle = document.getElementById('profileToggle');
+            const profileDropdown = document.getElementById('profileDropdown');
+
+            // Toggle notification dropdown
+            if (notificationBell) {
+                notificationBell.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    notificationDropdown.classList.toggle('show');
+                    profileDropdown.classList.remove('show');
+                });
+            }
+
+            // Close notification dropdown
+            if (closeNotificationBtn) {
+                closeNotificationBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    notificationDropdown.classList.remove('show');
+                });
+            }
+
+            // Toggle profile dropdown
+            if (profileToggle) {
+                profileToggle.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    profileDropdown.classList.toggle('show');
+                    if (notificationDropdown) {
+                        notificationDropdown.classList.remove('show');
+                    }
+                });
+            }
+
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.admin-header-actions')) {
+                    if (profileDropdown) profileDropdown.classList.remove('show');
+                    if (notificationDropdown) notificationDropdown.classList.remove('show');
+                }
+            });
+        });
+        </script>
 
         <!-- Page Content -->
         <div class="admin-content">

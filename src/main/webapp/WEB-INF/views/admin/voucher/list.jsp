@@ -45,26 +45,26 @@
             <table class="admin-table align-middle">
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>Mã</th>
-                        <th>Mô tả</th>
-                        <th>Loại</th>
-                        <th>Giá trị</th>
-                        <th>Đơn tối thiểu</th>
-                        <th>Giảm tối đa</th>
-                        <th>Số lượng</th>
-                        <th>Đã dùng</th>
-                        <th>Hiệu lực</th>
-                        <th>Trạng thái</th>
+                        <th class="text-center">#</th>
+                        <th class="text-center">Mã</th>
+                        <th class="text-center">Mô tả</th>
+                        <th class="text-center">Loại</th>
+                        <th class="text-center">Giá trị</th>
+                        <th class="text-center">Đơn tối thiểu</th>
+                        <th class="text-center">Giảm tối đa</th>
+                        <th class="text-center">Số lượng</th>
+                        <th class="text-center">Đã dùng</th>
+                        <th class="text-center">Hiệu lực</th>
+                        <th class="text-center">Trạng thái</th>
                         <th class="text-center">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     <c:forEach var="v" items="${vouchers}">
                         <tr>
-                            <td>${v.voucherId}</td>
-                            <td><span class="admin-badge admin-badge-primary rounded-pill px-3 py-2"><i class="bi bi-ticket-perforated"></i> ${v.code}</span></td>
-                            <td>
+                            <td class="text-center">${v.voucherId}</td>
+                            <td class="text-center"><span class="admin-badge admin-badge-primary rounded-pill px-3 py-2"><i class="bi bi-ticket-perforated"></i> ${v.code}</span></td>
+                            <td class="text-center">
                                 <span title="${v.description}">
                                     <c:choose>
                                         <c:when test="${not empty v.description}">
@@ -74,7 +74,7 @@
                                     </c:choose>
                                 </span>
                             </td>
-                            <td>
+                            <td class="text-center">
                                 <c:choose>
                                     <c:when test="${v.discountType eq 'PERCENT'}">
                                         <span class="admin-badge admin-badge-info rounded-pill px-3 py-2"><i class="bi bi-percent"></i> %</span>
@@ -84,24 +84,24 @@
                                     </c:otherwise>
                                 </c:choose>
                             </td>
-                            <td>
+                            <td class="text-center">
                                 <fmt:formatNumber value="${v.discountValue}" pattern="#,##0"/>
                                 <c:choose><c:when test="${v.discountType eq 'PERCENT'}">%</c:when><c:otherwise>₫</c:otherwise></c:choose>
                             </td>
-                            <td><fmt:formatNumber value="${v.minOrderValue}" pattern="#,##0₫"/></td>
-                            <td><fmt:formatNumber value="${v.maxDiscount}" pattern="#,##0₫"/></td>
-                            <td>
+                            <td class="text-center"><fmt:formatNumber value="${v.minOrderValue}" pattern="#,##0₫"/></td>
+                            <td class="text-center"><fmt:formatNumber value="${v.maxDiscount}" pattern="#,##0₫"/></td>
+                            <td class="text-center">
                                 <span class="admin-badge admin-badge-secondary rounded-pill px-3 py-2">${v.quantity != null ? v.quantity : '∞'}</span>
                             </td>
-                            <td>
+                            <td class="text-center">
                                 <span class="admin-badge admin-badge-light rounded-pill px-3 py-2">${v.usedCount}</span>
                             </td>
-                            <td>
+                            <td class="text-center">
                                 <span class="admin-badge admin-badge-light rounded-pill px-3 py-2">
                                     <fmt:formatDate value="${v.startDate}" pattern="dd/MM/yyyy"/> - <fmt:formatDate value="${v.endDate}" pattern="dd/MM/yyyy"/>
                                 </span>
                             </td>
-                            <td>
+                            <td class="text-center">
                                 <c:choose>
                                     <c:when test="${v.active}"><span class="admin-badge admin-badge-success rounded-pill px-3 py-2"><i class="bi bi-check-circle"></i> Kích hoạt</span></c:when>
                                     <c:otherwise><span class="admin-badge admin-badge-secondary rounded-pill px-3 py-2"><i class="bi bi-x-circle"></i> Ẩn</span></c:otherwise>
