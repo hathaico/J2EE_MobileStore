@@ -32,7 +32,8 @@ public class CheckoutSuccessController extends HttpServlet {
         String orderIdParam = request.getParameter("orderId");
         
         if (orderIdParam == null || orderIdParam.isEmpty()) {
-            response.sendRedirect(request.getContextPath() + "/");
+            request.setAttribute("error", "Không tìm thấy mã đơn hàng");
+            request.getRequestDispatcher("/WEB-INF/views/checkout/success.jsp").forward(request, response);
             return;
         }
         
@@ -41,7 +42,8 @@ public class CheckoutSuccessController extends HttpServlet {
             Order order = orderService.getOrderById(orderId);
             
             if (order == null) {
-                response.sendRedirect(request.getContextPath() + "/");
+                request.setAttribute("error", "Đơn hàng không tồn tại hoặc đã bị xóa");
+                request.getRequestDispatcher("/WEB-INF/views/checkout/success.jsp").forward(request, response);
                 return;
             }
             
@@ -53,7 +55,20 @@ public class CheckoutSuccessController extends HttpServlet {
                    .forward(request, response);
             
         } catch (NumberFormatException e) {
-            response.sendRedirect(request.getContextPath() + "/");
+            request.setAttribute("error", "Mã đơn hàng không hợp lệ");
+            try {
+                request.getRequestDispatcher("/WEB-INF/views/checkout/success.jsp").forward(request, response);
+            } catch (ServletException | IOException ex) {
+                response.sendRedirect(request.getContextPath() + "/");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            request.setAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
+            try {
+                request.getRequestDispatcher("/WEB-INF/views/checkout/success.jsp").forward(request, response);
+            } catch (ServletException | IOException ex) {
+                response.sendRedirect(request.getContextPath() + "/");
+            }
         }
     }
 }

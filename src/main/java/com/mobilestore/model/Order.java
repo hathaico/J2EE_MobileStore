@@ -215,12 +215,14 @@ public class Order {
         if (paymentMethod == null) return "Không xác định";
         
         switch (paymentMethod) {
-            case "COD":
+            case "CASH":
                 return "Thanh toán khi nhận hàng";
             case "BANK_TRANSFER":
                 return "Chuyển khoản ngân hàng";
+            case "MOMO":
+                return "Ví MoMo";
             case "CREDIT_CARD":
-                return "Thẻ ngân hàng";
+                return "VNPay (ATM/Visa/Mastercard)";
             default:
                 return "Không xác định";
         }

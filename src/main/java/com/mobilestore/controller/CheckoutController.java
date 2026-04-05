@@ -6,7 +6,6 @@ import com.mobilestore.model.User;
 import com.mobilestore.dao.CustomerDAO;
 import com.mobilestore.service.CartService;
 import com.mobilestore.service.OrderService;
-import com.mobilestore.util.PaymentCardUtil;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -45,12 +44,16 @@ public class CheckoutController extends HttpServlet {
         String errorCode = request.getParameter("error");
         if ("vnpay_not_configured".equals(errorCode)) {
             request.setAttribute("error", "Chưa cấu hình VNPay. Vui lòng thiết lập VNPAY_TMN_CODE và VNPAY_HASH_SECRET.");
+        } else if ("momo_not_configured".equals(errorCode)) {
+            request.setAttribute("error", "Chưa cấu hình MoMo. Vui lòng thiết lập MOMO_PARTNER_CODE, MOMO_ACCESS_KEY và MOMO_SECRET_KEY.");
         } else if ("missing_order".equals(errorCode)) {
             request.setAttribute("error", "Không tìm thấy thông tin đơn hàng để thanh toán.");
         } else if ("invalid_order".equals(errorCode) || "order_not_found".equals(errorCode)) {
             request.setAttribute("error", "Đơn hàng không hợp lệ hoặc không tồn tại.");
         } else if ("invalid_vnpay_response".equals(errorCode)) {
             request.setAttribute("error", "Phản hồi VNPay không hợp lệ. Vui lòng thử lại.");
+        } else if ("invalid_momo_response".equals(errorCode)) {
+            request.setAttribute("error", "Phản hồi MoMo không hợp lệ. Vui lòng thử lại.");
         }
         
         // Refresh cart with latest product information
@@ -129,45 +132,7 @@ public class CheckoutController extends HttpServlet {
                 throw new IllegalArgumentException("Không thể tạo thông tin khách hàng cho đơn hàng.");
             }
 
-            // Validate card details for card payments
-            if ("CREDIT_CARD".equals(paymentMethod)) {
-                String cardHolderName = request.getParameter("cardHolderName");
-                String cardNumber = request.getParameter("cardNumber");
-                String cardExpiry = request.getParameter("cardExpiry");
-                String cardCvv = request.getParameter("cardCvv");
-                boolean safeLocalDevMode = isSafeDevModeRequest(request);
-
-                if (cardHolderName == null || cardHolderName.trim().isEmpty()) {
-                    throw new IllegalArgumentException("Vui lòng nhập tên chủ thẻ.");
-                }
-
-                if (safeLocalDevMode) {
-                    String normalizedCard = PaymentCardUtil.normalizeCardNumber(cardNumber);
-                    if (normalizedCard.length() < 8 || normalizedCard.length() > 19) {
-                        throw new IllegalArgumentException("Số thẻ ngân hàng không hợp lệ.");
-                    }
-                    if (cardExpiry == null || cardExpiry.trim().isEmpty()) {
-                        throw new IllegalArgumentException("Vui lòng nhập ngày hết hạn thẻ.");
-                    }
-                    if (cardCvv == null || cardCvv.trim().isEmpty()) {
-                        throw new IllegalArgumentException("Vui lòng nhập mã CVV/CVC.");
-                    }
-                } else {
-                    if (!PaymentCardUtil.isValidCardNumber(cardNumber)) {
-                        throw new IllegalArgumentException("Số thẻ ngân hàng không hợp lệ.");
-                    }
-                    if (!PaymentCardUtil.isValidExpiry(cardExpiry)) {
-                        throw new IllegalArgumentException("Ngày hết hạn thẻ không hợp lệ.");
-                    }
-                    if (!PaymentCardUtil.isValidCvv(cardCvv)) {
-                        throw new IllegalArgumentException("Mã CVV/CVC không hợp lệ.");
-                    }
-                }
-
-                String maskedCard = PaymentCardUtil.maskCardNumber(cardNumber);
-                String paymentAudit = "[Thanh toan the: " + maskedCard + ", Chu the: " + cardHolderName.trim() + "]";
-                notes = (notes == null || notes.trim().isEmpty()) ? paymentAudit : notes + " " + paymentAudit;
-            }
+            // Redirect-based payment flow: card data is entered on VNPay, not on our website.
 
             // Lấy voucherCode và discount từ form nếu có
             String voucherCode = request.getParameter("voucherCode");
@@ -212,6 +177,12 @@ public class CheckoutController extends HttpServlet {
                     return;
                 }
 
+                if ("MOMO".equals(paymentMethod)) {
+                    // Keep cart until MoMo callback confirms success.
+                    response.sendRedirect(request.getContextPath() + "/payment/momo/create?orderId=" + orderId);
+                    return;
+                }
+
                 // Clear cart và voucher cho các phương thức không qua cổng thẻ
                 cartService.clearCart(session);
                 session.removeAttribute("appliedVoucherId");
@@ -237,8 +208,6 @@ public class CheckoutController extends HttpServlet {
             request.setAttribute("shippingAddress", request.getParameter("shippingAddress"));
             request.setAttribute("paymentMethod", request.getParameter("paymentMethod"));
             request.setAttribute("notes", request.getParameter("notes"));
-            request.setAttribute("cardHolderName", request.getParameter("cardHolderName"));
-            request.setAttribute("cardExpiry", request.getParameter("cardExpiry"));
             request.setAttribute("vnpayDevModeActive", isSafeDevModeRequest(request));
             
             request.getRequestDispatcher("/WEB-INF/views/checkout/checkout.jsp")
@@ -247,8 +216,6 @@ public class CheckoutController extends HttpServlet {
             e.printStackTrace();
             request.setAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
             request.setAttribute("cart", cart);
-                 request.setAttribute("cardHolderName", request.getParameter("cardHolderName"));
-                 request.setAttribute("cardExpiry", request.getParameter("cardExpiry"));
             request.setAttribute("vnpayDevModeActive", isSafeDevModeRequest(request));
             request.getRequestDispatcher("/WEB-INF/views/checkout/checkout.jsp")
                    .forward(request, response);

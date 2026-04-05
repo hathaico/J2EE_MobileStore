@@ -23,7 +23,22 @@
     <div class="container my-5">
         <div class="row justify-content-center">
             <div class="col-md-8">
+                <!-- Error Message -->
+                <c:if test="${not empty error}">
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-circle-fill me-2"></i>
+                        <strong>Lỗi!</strong> ${error}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    <div class="text-center mt-4">
+                        <a href="${pageContext.request.contextPath}/" class="btn btn-primary">
+                            <i class="bi bi-house"></i> Về Trang Chủ
+                        </a>
+                    </div>
+                </c:if>
+                
                 <!-- Success Message -->
+                <c:if test="${not empty order}">
                 <div class="text-center mb-4">
                     <i class="bi bi-check-circle text-success" style="font-size: 5rem;"></i>
                     <h2 class="mt-3">Đặt Hàng Thành Công!</h2>
@@ -31,9 +46,10 @@
                 </div>
                 
                 <!-- Order Information -->
-                <div class="card">
-                    <div class="card-header bg-success text-white">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="bi bi-bag-check"></i> Thông Tin Đơn Hàng #${order.orderId}</h5>
+                        <span class="badge ${order.statusBadgeClass}">${order.statusLabel}</span>
                     </div>
                     <div class="card-body">
                         <c:if test="${param.payment == 'success'}">
@@ -51,42 +67,74 @@
                                 <i class="bi bi-exclamation-triangle-fill me-2"></i>Thanh toán thẻ chưa thành công. Bạn có thể thanh toán lại sau.
                             </div>
                         </c:if>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <h6>Thông Tin Khách Hàng</h6>
-                                <p class="mb-1"><strong>Họ tên:</strong> ${order.customerName}</p>
-                                <p class="mb-1"><strong>Điện thoại:</strong> ${order.customerPhone}</p>
-                                <c:if test="${not empty order.customerEmail}">
-                                    <p class="mb-1"><strong>Email:</strong> ${order.customerEmail}</p>
-                                </c:if>
+                        <c:if test="${param.payment == 'momo_success'}">
+                            <div class="alert alert-success" role="alert">
+                                <i class="bi bi-check-circle-fill me-2"></i>Thanh toán qua ví MoMo thành công.
                             </div>
+                        </c:if>
+                        <c:if test="${param.payment == 'momo_failed'}">
+                            <div class="alert alert-warning" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>Thanh toán MoMo chưa thành công. Bạn có thể thanh toán lại sau.
+                            </div>
+                        </c:if>
+                        
+                        <!-- Customer Information Row -->
+                        <div class="row g-3 mb-4">
                             <div class="col-md-6">
-                                <h6>Thông Tin Đơn Hàng</h6>
-                                <p class="mb-1"><strong>Mã đơn:</strong> #${order.orderId}</p>
-                                <p class="mb-1"><strong>Ngày đặt:</strong> 
-                                    <fmt:formatDate value="${order.createdAt}" pattern="dd/MM/yyyy HH:mm"/>
-                                </p>
-                                <p class="mb-1">
-                                    <strong>Trạng thái:</strong> 
-                                    <span class="badge ${order.statusBadgeClass}">${order.statusLabel}</span>
-                                </p>
+                                <div class="bg-light p-3 rounded">
+                                    <h6 class="mb-3 fw-bold"><i class="bi bi-person-circle me-2" style="color: #198754;"></i>Thông Tin Khách Hàng</h6>
+                                    <dl class="row g-2 mb-0">
+                                        <dt class="col-sm-5">Họ tên:</dt>
+                                        <dd class="col-sm-7">${not empty order.customerName ? order.customerName : '<em class=\"text-muted\">Chưa cập nhật</em>'}</dd>
+                                        
+                                        <dt class="col-sm-5">Điện thoại:</dt>
+                                        <dd class="col-sm-7">${not empty order.customerPhone ? order.customerPhone : '<em class=\"text-muted\">Chưa cập nhật</em>'}</dd>
+                                        
+                                        <c:if test="${not empty order.customerEmail}">
+                                            <dt class="col-sm-5">Email:</dt>
+                                            <dd class="col-sm-7">${order.customerEmail}</dd>
+                                        </c:if>
+                                    </dl>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="bg-light p-3 rounded">
+                                    <h6 class="mb-3 fw-bold"><i class="bi bi-receipt me-2" style="color: #198754;"></i>Thông Tin Đơn Hàng</h6>
+                                    <dl class="row g-2 mb-0">
+                                        <dt class="col-sm-5">Mã đơn:</dt>
+                                        <dd class="col-sm-7"><strong>#${order.orderId}</strong></dd>
+                                        
+                                        <dt class="col-sm-5">Ngày đặt:</dt>
+                                        <dd class="col-sm-7">
+                                            <fmt:formatDate value="${order.createdAt}" pattern="dd/MM/yyyy HH:mm"/>
+                                        </dd>
+                                        
+                                        <dt class="col-sm-5">Trạng thái:</dt>
+                                        <dd class="col-sm-7">
+                                            <span class="badge ${order.statusBadgeClass}">${order.statusLabel}</span>
+                                        </dd>
+                                    </dl>
+                                </div>
                             </div>
                         </div>
                         
                         <hr>
                         
-                        <div class="mb-3">
-                            <h6>Địa Chỉ Giao Hàng</h6>
-                            <p class="mb-0">${order.shippingAddress}</p>
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-2"><i class="bi bi-geo-alt-fill me-2" style="color: #198754;"></i>Địa Chỉ Giao Hàng</h6>
+                            <div class="p-2 bg-light rounded">
+                                <p class="mb-0">${not empty order.shippingAddress ? order.shippingAddress : '<em class=\"text-muted\">Chưa cập nhật</em>'}</p>
+                            </div>
                         </div>
                         
                         <hr>
                         
-                        <div class="mb-3">
-                            <h6>Sản Phẩm</h6>
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-3"><i class="bi bi-box-seam me-2" style="color: #198754;"></i>Sản Phẩm Đặt Hàng</h6>
                             <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
+                                <table class="table table-hover table-sm">
+                                    <thead class="table-light">
                                         <tr>
                                             <th>Sản phẩm</th>
                                             <th class="text-center">Số lượng</th>
@@ -98,22 +146,28 @@
                                         <c:forEach var="item" items="${order.orderItems}">
                                             <tr>
                                                 <td>
-                                                    <div>${item.productName}</div>
-                                                    <div class="text-muted" style="font-size: 0.85rem;">Màu: ${not empty item.selectedColor ? item.selectedColor : 'Chưa chọn'} | Dung lượng: ${not empty item.selectedCapacity ? item.selectedCapacity : 'Chưa chọn'}</div>
+                                                    <div class="fw-500">${item.productName}</div>
+                                                    <div class="text-muted small mt-1">
+                                                        <i class="bi bi-palette me-1"></i>Màu: ${not empty item.selectedColor ? item.selectedColor : 'Chưa chọn'} 
+                                                        <br>
+                                                        <i class="bi bi-hdd me-1"></i>Dung lượng: ${not empty item.selectedCapacity ? item.selectedCapacity : 'Chưa chọn'}
+                                                    </div>
                                                 </td>
-                                                <td class="text-center">${item.quantity}</td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-secondary">${item.quantity}</span>
+                                                </td>
                                                 <td class="text-end">
                                                     <fmt:formatNumber value="${item.price}" type="currency" 
                                                                     currencyCode="VND" pattern="#,##0 ₫"/>
                                                 </td>
-                                                <td class="text-end">
+                                                <td class="text-end fw-bold">
                                                     <fmt:formatNumber value="${item.subtotal}" type="currency" 
                                                                     currencyCode="VND" pattern="#,##0 ₫"/>
                                                 </td>
                                             </tr>
                                         </c:forEach>
                                     </tbody>
-                                    <tfoot>
+                                    <tfoot class="table-light fw-bold">
                                         <tr>
                                             <th colspan="3" class="text-end">Tổng cộng:</th>
                                             <th class="text-end text-danger">
@@ -128,31 +182,36 @@
                         
                         <hr>
                         
-                        <div class="row">
+                        <!-- Payment Information Row -->
+                        <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <p class="mb-1"><strong>Phương thức thanh toán:</strong></p>
-                                <p>${order.paymentMethodLabel}</p>
+                                <div class="bg-light p-3 rounded">
+                                    <p class="mb-2"><strong><i class="bi bi-credit-card me-2" style="color: #198754;"></i>Phương thức thanh toán</strong></p>
+                                    <p class="mb-0">${order.paymentMethodLabel}</p>
+                                </div>
                             </div>
                             <div class="col-md-6">
-                                <p class="mb-1"><strong>Trạng thái thanh toán:</strong></p>
-                                <p>
-                                    <c:choose>
-                                        <c:when test="${order.paymentStatus == 'PAID'}">
-                                            <span class="badge bg-success">${order.paymentStatusLabel}</span>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <span class="badge bg-warning">${order.paymentStatusLabel}</span>
-                                        </c:otherwise>
-                                    </c:choose>
-                                </p>
+                                <div class="bg-light p-3 rounded">
+                                    <p class="mb-2"><strong><i class="bi bi-check2-square me-2" style="color: #198754;"></i>Trạng thái thanh toán</strong></p>
+                                    <p class="mb-0">
+                                        <c:choose>
+                                            <c:when test="${order.paymentStatus == 'PAID'}">
+                                                <span class="badge bg-success">Đã thanh toán</span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="badge bg-warning">Chưa thanh toán</span>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </p>
+                                </div>
                             </div>
                         </div>
                         
                         <c:if test="${not empty order.notes}">
                             <hr>
                             <div>
-                                <p class="mb-1"><strong>Ghi chú:</strong></p>
-                                <p class="mb-0">${order.notes}</p>
+                                <p class="mb-2"><strong><i class="bi bi-chat-left-text me-2" style="color: #198754;"></i>Ghi chú:</strong></p>
+                                <p class="mb-0 p-2 bg-light rounded">${order.notes}</p>
                             </div>
                         </c:if>
                     </div>
@@ -166,7 +225,7 @@
                             <li>Chúng tôi sẽ xác nhận đơn hàng trong vòng 24 giờ</li>
                             <li>Bạn sẽ nhận được thông báo qua điện thoại/email</li>
                             <li>Thời gian giao hàng dự kiến: 2-3 ngày làm việc</li>
-                            <li>Vui lòng chuẩn bị tiền mặt nếu chọn COD</li>
+                            <li>Vui lòng chuẩn bị tiền mặt nếu chọn CASH</li>
                         </ul>
                     </div>
                 </div>
@@ -180,6 +239,7 @@
                         <i class="bi bi-shop"></i> Tiếp Tục Mua Hàng
                     </a>
                 </div>
+                </c:if>
             </div>
         </div>
     </div>

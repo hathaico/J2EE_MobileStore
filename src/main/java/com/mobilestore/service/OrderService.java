@@ -50,7 +50,7 @@ public class OrderService {
         order.setVoucherId(voucherId);
         order.setStatus("PENDING");
         order.setPaymentMethod(paymentMethod);
-        order.setPaymentStatus("CREDIT_CARD".equals(paymentMethod) ? "PAID" : "UNPAID");
+        order.setPaymentStatus("UNPAID");
         order.setNotes(notes);
 
         // Chuyển CartItem thành OrderItem
@@ -167,8 +167,8 @@ public class OrderService {
      */
     private boolean isValidPaymentMethod(String paymentMethod) {
          return "CASH".equals(paymentMethod) ||
-             "COD".equals(paymentMethod) ||
              "BANK_TRANSFER".equals(paymentMethod) || 
+             "MOMO".equals(paymentMethod) ||
              "CREDIT_CARD".equals(paymentMethod);
     }
 }

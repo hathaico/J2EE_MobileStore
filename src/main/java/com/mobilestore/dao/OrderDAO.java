@@ -66,7 +66,9 @@ public class OrderDAO extends BaseDAO {
      * @return Order object or null if not found
      */
     private Order getOrderBasicInfo(int orderId) {
-        String sql = "SELECT * FROM orders WHERE order_id = ?";
+        String sql = "SELECT o.*, c.full_name, c.phone, c.email FROM orders o " +
+                     "LEFT JOIN customers c ON o.customer_id = c.customer_id " +
+                     "WHERE o.order_id = ?";
         
         Connection conn = null;
         PreparedStatement stmt = null;
@@ -381,6 +383,17 @@ public class OrderDAO extends BaseDAO {
         int customerId = rs.getInt("customer_id");
         order.setCustomerId(rs.wasNull() ? null : customerId);
         
+        // Set customer information from joined customers table
+        if (hasColumn(rs, "full_name")) {
+            order.setCustomerName(rs.getString("full_name"));
+        }
+        if (hasColumn(rs, "phone")) {
+            order.setCustomerPhone(rs.getString("phone"));
+        }
+        if (hasColumn(rs, "email")) {
+            order.setCustomerEmail(rs.getString("email"));
+        }
+        
         // Bỏ các trường không có trong bảng
         order.setShippingAddress(rs.getString("shipping_address"));
         order.setTotalAmount(rs.getBigDecimal("total_amount"));
@@ -414,7 +427,7 @@ public class OrderDAO extends BaseDAO {
         item.setOrderId(rs.getInt("order_id"));
         item.setProductId(rs.getInt("product_id"));
         item.setProductName(rs.getString("product_name"));
-        item.setPrice(rs.getBigDecimal("price"));
+        item.setPrice(rs.getBigDecimal("unit_price"));
         item.setQuantity(rs.getInt("quantity"));
         item.setSubtotal(rs.getBigDecimal("subtotal"));
         if (hasColumn(rs, "selected_color")) {
