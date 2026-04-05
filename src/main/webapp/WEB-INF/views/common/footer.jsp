@@ -216,8 +216,75 @@
     <!-- Global Alerts CSS/JS -->
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/admin-alerts.css">
     <script src="${pageContext.request.contextPath}/assets/js/global-alerts.js"></script>
+
+    <!-- Chatbot Test UI -->
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/chatbot.css">
+
+    <section id="chatbot-widget" class="chatbot-container" aria-label="MobileStore Bot">
+        <header class="chat-header">
+            <div class="chatbot-brand">
+                <div class="chatbot-avatar">🤖</div>
+                <div class="chatbot-meta">
+                    <h3>MobileStore Bot</h3>
+                    <p><span class="online-dot"></span>Online • <span id="ai-mode-badge" class="ai-mode-badge">AI OFF</span></p>
+                </div>
+            </div>
+            <div class="chat-header-actions">
+                <button id="ai-settings-btn" class="header-btn" type="button" title="Cài đặt AI" aria-label="Cài đặt AI">⚙</button>
+                <button id="minimize-btn" class="header-btn" type="button" title="Thu nhỏ" aria-label="Thu nhỏ">_</button>
+                <button id="close-btn" class="header-btn" type="button" title="Đóng" aria-label="Đóng">✕</button>
+            </div>
+        </header>
+
+        <div id="ai-settings-panel" class="ai-settings-panel" style="display:none;" aria-label="Cài đặt DeepSeek">
+            <div class="ai-settings-title">DeepSeek R1</div>
+            <label for="deepseek-api-key" class="ai-settings-label">API Key</label>
+            <input id="deepseek-api-key" class="ai-settings-input" type="password" placeholder="sk-...">
+
+            <div class="ai-settings-grid">
+                <div>
+                    <label for="deepseek-model" class="ai-settings-label">Model</label>
+                    <input id="deepseek-model" class="ai-settings-input" type="text" value="deepseek-reasoner">
+                </div>
+                <div>
+                    <label for="deepseek-endpoint" class="ai-settings-label">Endpoint</label>
+                    <input id="deepseek-endpoint" class="ai-settings-input" type="text" value="https://api.deepseek.com/chat/completions">
+                </div>
+            </div>
+
+            <div class="ai-settings-actions">
+                <button id="save-ai-settings" type="button" class="ai-settings-btn">Lưu</button>
+                <button id="clear-ai-settings" type="button" class="ai-settings-btn secondary">Xóa key</button>
+            </div>
+            <p class="ai-settings-note">Nếu API lỗi hoặc thiếu key, bot sẽ tự động dùng dữ liệu trực tiếp từ MobileStore.</p>
+        </div>
+
+        <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
+
+        <div id="quick-actions" class="quick-actions" aria-label="Tác vụ nhanh">
+            <button class="quick-chip" type="button" data-quick="compare">So sánh sản phẩm 🔍</button>
+            <button class="quick-chip" type="button" data-quick="stock">Kiểm tra tồn kho 📦</button>
+            <button class="quick-chip" type="button" data-quick="tech">Hỏi câu hỏi kỹ thuật ⚙️</button>
+            <button class="quick-chip" type="button" data-quick="promo">Xem khuyến mãi 🎁</button>
+            <button class="quick-chip" type="button" data-quick="budget">Tư vấn theo ngân sách 💰</button>
+        </div>
+
+        <form id="chat-form" class="chat-input-area" novalidate>
+            <input
+                type="text"
+                id="chat-input"
+                placeholder="Nhập tin nhắn của bạn..."
+                autocomplete="off"
+                aria-label="Nhập tin nhắn"
+            >
+            <button id="send-btn" type="submit" class="send-btn" aria-label="Gửi tin nhắn">➤</button>
+        </form>
+    </section>
+
+    <button id="chatbot-toggle" class="chatbot-toggle" type="button" aria-label="Mở chatbot" style="display:none;">💬 Chat</button>
     
     <!-- Custom JS -->
     <script src="${pageContext.request.contextPath}/assets/js/main.js"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/chatbot.js"></script>
 </body>
 </html>

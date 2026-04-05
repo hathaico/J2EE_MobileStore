@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MobileStore ChatBot Demo</title>
+    <link rel="stylesheet" href="assets/css/chatbot.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-top: 0;
+        }
+
+        .demo-section {
+            margin: 40px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .demo-section h2 {
+            color: #764ba2;
+            margin-top: 0;
+        }
+
+        .conversation {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #eee;
+        }
+
+        .message-demo {
+            margin: 10px 0;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .message-demo.user {
+            background: #667eea;
+            color: white;
+            margin-left: 20px;
+            border-radius: 12px 12px 4px 12px;
+        }
+
+        .message-demo.bot {
+            background: #f0f0f0;
+            color: #333;
+            margin-right: 20px;
+            border-radius: 12px 12px 12px 4px;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .feature-card h3 {
+            color: #667eea;
+            margin-top: 0;
+        }
+
+        .faq {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #764ba2;
+        }
+
+        .faq h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .faq p {
+            margin: 10px 0;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .code-block {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .code-block code {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .integration-guide {
+            background: #f0f4ff;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #667eea;
+            margin: 20px 0;
+        }
+
+        .step {
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .step strong {
+            color: #667eea;
+        }
+
+        button.demo-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        button.demo-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .demo-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .demo-table-header {
+            background: #667eea;
+            color: white;
+        }
+
+        .demo-table-header th {
+            padding: 8px;
+            text-align: left;
+        }
+
+        .demo-table-row-alt {
+            background: #f9f9f9;
+        }
+
+        .demo-table td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .demo-table th {
+            padding: 8px;
+            text-align: left;
+        }
+
+        .demo-grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .demo-support {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+        }
+
+        hr.demo-divider {
+            margin-top: 40px;
+            border: none;
+            border-top: 2px solid #eee;
+        }
+
+        .demo-footer {
+            text-align: center;
+            color: #999;
+        }
+
+        .demo-list {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 MobileStore ChatBot - Hệ Thống Tư Vấn Bán Hàng Ảo</h1>
+        
+        <p>Đây là chatbot thông minh được thiết kế để hỗ trợ khách hàng mua sắm và tư vấn sản phẩm điện thoại di động.</p>
+
+        <!-- OVERVIEW -->
+        <div class="demo-section">
+            <h2>📋 Tổng Quan</h2>
+            <p><strong>Mục đích:</strong> Cung cấp trợ lý bán hàng ảo 24/7 để tư vấn và hỗ trợ khách hàng.</p>
+            <p><strong>Công nghệ:</strong> Java Spring Boot + REST API + HTML5/CSS3/JavaScript</p>
+            <p><strong>Dữ liệu mẫu:</strong> 5 thiết bị di động phổ biến (iPhone, Samsung, Xiaomi, OPPO, Nothing)</p>
+        </div>
+
+        <!-- SAMPLE CONVERSATIONS -->
+        <div class="demo-section">
+            <h2>💬 Ví Dụ Đoạn Hội Thoại</h2>
+
+            <h3>Ví dụ 1: Tư vấn theo ngân sách</h3>
+            <div class="conversation">
+                <div class="message-demo user">👤 Tôi có ngân sách 10 triệu, có điện thoại nào phù hợp không?</div>
+                <div class="message-demo bot">🤖 Dựa trên ngân sách của bạn, tôi gợi ý 3 sản phẩm tốt nhất:<br>
+                    1. <b>OPPO Reno 11 Pro</b> ⭐ 4.6/5<br>
+                    💰 Giá: 10,990,000 ₫ → 9,990,000 ₫ (giảm 9%)<br>
+                    📊 Snapdragon 8 Gen 2 | RAM: 12GB | Pin: 5000mAh<br>
+                    📦 Còn hàng (20 sản phẩm)<br>
+                    ℹ️ Camera periscope 32MP, AMOLED 120Hz, sạc nhanh 100W<br><br>
+                    2. <b>Nothing Phone 2</b> ⭐ 4.5/5<br>
+                    💰 Giá: 8,990,000 ₫ → 7,990,000 ₫ (giảm 11%)<br>
+                    📊 Snapdragon 8+ Gen 1 | RAM: 12GB | Pin: 4700mAh<br>
+                    📦 Còn hàng (30 sản phẩm)<br>
+                    ℹ️ Thiết kế độc đáo với Glyph, giá cắt cơn, hiệu năng tốt
+                </div>
+            </div>
+
+            <h3>Ví dụ 2: So sánh sản phẩm</h3>
+            <div class="conversation">
+                <div class="message-demo user">👤 So sánh iPhone 15 và Samsung S24 giúp tôi!</div>
+                <div class="message-demo bot">🤖 <b>BẢNG SO SÁNH SẢN PHẨM</b><br><br>
+                    <table class="demo-table">
+                        <tr class="demo-table-header">
+                            <th>Tiêu chí</th>
+                            <th>iPhone 15 Pro</th>
+                            <th>Samsung S24 Ultra</th>
+                        </tr>
+                        <tr class="demo-table-row-alt">
+                            <td>💰 Giá</td>
+                            <td>23,990,000 ₫</td>
+                            <td>22,490,000 ₫</td>
+                        </tr>
+                        <tr>
+                            <td>📊 CPU</td>
+                            <td>Apple A17 Pro</td>
+                            <td>Snapdragon 8 Gen 3</td>
+                        </tr>
+                        <tr class="demo-table-row-alt">
+                            <td>💾 RAM</td>
+                            <td>8GB</td>
+                            <td>12GB</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <h3>Ví dụ 3: Hỏi đáp kỹ thuật</h3>
+            <div class="conversation">
+                <div class="message-demo user">👤 Điện thoại có chống nước không? Sạc nhanh bao nhiêu W?</div>
+                <div class="message-demo bot">🤖 💧 <b>CHỐNG NƯỚC IP68 LÀ GÌ?</b><br>
+                    IP68 là tiêu chuẩn chống nước cao nhất:<br>
+                    • Chịu được ngâm nước sâu 1.5m trong 30 phút<br>
+                    • Chống bụi hoàn toàn<br>
+                    Tất cả sản phẩm của chúng tôi đều có IP68<br><br>
+                    ⚡ <b>SẠC NHANH</b><br>
+                    • iPhone 15 Pro: 20W (45 phút)<br>
+                    • Samsung S24 Ultra: 45W (30 phút)<br>
+                    • Xiaomi 14T Pro: 120W HyperCharge (20 phút)
+                </div>
+            </div>
+        </div>
+
+        <!-- FEATURES -->
+        <div class="demo-section">
+            <h2>✨ Các Tính Năng Chính</h2>
+            <div class="features">
+                <div class="feature-card">
+                    <h3>📱 Tư vấn Sản phẩm</h3>
+                    <p>Gợi ý 3-5 sản phẩm phù hợp dựa trên ngân sách, thương hiệu yêu thích và mục đích sử dụng.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🔍 So Sánh</h3>
+                    <p>Cho phép so sánh tối đa 3 sản phẩm với bảng chi tiết về CPU, RAM, pin, camera và giá.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>💰 Kiểm Tra Giá & Kho</h3>
+                    <p>Xem giá hiện tại, giá ưu đãi, tình trạng tồn kho của tất cả sản phẩm.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>📦 Vận Chuyển & Khuyến Mãi</h3>
+                    <p>Ước tính phí vận chuyển, thời gian giao và các chương trình ưu đãi hiện tại.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>❓ Hỏi Đáp Kỹ Thuật</h3>
+                    <p>Trả lời các câu hỏi về chống nước, sạc nhanh, camera, pin, RAM...</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🎁 Combo & Phụ Kiện</h3>
+                    <p>Gợi ý combo tiết kiệm, phụ kiện đi kèm và cơ hội trả góp 0%.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQs -->
+        <div class="demo-section">
+            <h2>❓ Các Câu Hỏi Thường Gặp (FAQs)</h2>
+
+            <div class="faq">
+                <h3>Q1: Bot tư vấn được những gì?</h3>
+                <p><strong>A:</strong> Bot có thể giúp bạn:
+                    <ul class="demo-list">
+                        <li>Tìm điện thoại phù hợp với ngân sách</li>
+                        <li>So sánh thông số kỹ thuật giữa các sản phẩm</li>
+                        <li>Kiểm tra giá, khuyến mãi và tồn kho</li>
+                        <li>Tra cứu phí vận chuyển theo khu vực</li>
+                        <li>Trả lời các câu hỏi kỹ thuật cơ bản</li>
+                        <li>Giới thiệu các chương trình ưu đãi</li>
+                    </ul>
+                </p>
+            </div>
+
+            <div class="faq">
+                <h3>Q2: Bot có thể lập đơn hàng không?</h3>
+                <p><strong>A:</strong> Tại thời điểm này, bot chỉ tư vấn và cung cấp thông tin. Để mua hàng, bạn cần:
+                    <ul class="demo-list">
+                        <li>Truy cập website để lập đơn trực tiếp</li>
+                        <li>Gọi hotline để nhân viên hỗ trợ</li>
+                        <li>Chat với nhân viên CSKH qua bot</li>
+                    </ul>
+                </p>
+            </div>
+
+            <div class="faq">
+                <h3>Q3: Data sản phẩm có được cập nhật thực tế?</h3>
+                <p><strong>A:</strong> Hiện tại đang sử dụng dữ liệu mẫu. Để tích hợp với hệ thống thực, bạn cần:
+                    <ul class="demo-list">
+                        <li>Kết nối với database sản phẩm thực tế (MySQL, PostgreSQL)</li>
+                        <li>Đồng bộ hóa giá và kho hang realtime</li>
+                        <li>Tích hợp API thanh toán và giao hàng</li>
+                    </ul>
+                </p>
+            </div>
+
+            <div class="faq">
+                <h3>Q4: Làm sao để tích hợp bot vào website?</h3>
+                <p><strong>A:</strong> Xem phần "Hướng Dẫn Tích Hợp" bên dưới.</p>
+            </div>
+
+            <div class="faq">
+                <h3>Q5: Bot có hỗ trợ các ngôn ngữ khác không?</h3>
+                <p><strong>A:</strong> Hiện tại chỉ hỗ trợ Tiếng Việt. Có thể mở rộng hỗ trợ các ngôn ngữ khác bằng cách:
+                    <ul class="demo-list">
+                        <li>Dịch tất cả tin nhắn vào i18n</li>
+                        <li>Sử dụng Google Translate API hoặc service tương tự</li>
+                        <li>Tích hợp NLP multi-language</li>
+                    </ul>
+                </p>
+            </div>
+
+            <div class="faq">
+                <h3>Q6: API endpoint của bot ở đâu?</h3>
+                <p><strong>A:</strong> API được expose tại:
+                    <div class="code-block">
+                        <code>
+                            POST /api/chatbot/message<br>
+                            GET /api/chatbot/health<br>
+                            GET /api/chatbot/greeting
+                        </code>
+                    </div>
+                </p>
+            </div>
+        </div>
+
+        <!-- INTEGRATION GUIDE -->
+        <div class="integration-guide">
+            <h2>🔧 Hướng Dẫn Tích Hợp Chatbot Vào Website</h2>
+
+            <div class="step">
+                <strong>Bước 1: Include CSS & JS trong HTML</strong>
+                <div class="code-block">
+                    <code>&lt;head&gt;<br>
+                    &nbsp;&nbsp;&lt;link rel="stylesheet" href="assets/css/chatbot.css"&gt;<br>
+                    &lt;/head&gt;<br>
+                    &lt;body&gt;<br>
+                    &nbsp;&nbsp;&lt;!-- Page content --&gt;<br>
+                    &nbsp;&nbsp;&lt;script src="assets/js/chatbot.js"&gt;&lt;/script&gt;<br>
+                    &lt;/body&gt;
+                    </code>
+                </div>
+            </div>
+
+            <div class="step">
+                <strong>Bước 2: Thêm HTML Widget</strong>
+                <div class="code-block">
+                    <code>&lt;body&gt;<br>
+                    &nbsp;&nbsp;&lt;div id="chatbot-widget" class="chatbot-container"&gt;<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&lt;!-- Widget HTML từ chatbot.html --&gt;<br>
+                    &nbsp;&nbsp;&lt;/div&gt;<br>
+                    &lt;/body&gt;
+                    </code>
+                </div>
+            </div>
+
+            <div class="step">
+                <strong>Bước 3: Cấu Hình API Base URL</strong>
+                <div class="code-block">
+                    <code>// Trong chatbot.js, cập nhật CHATBOT_API<br>
+                    const CHATBOT_API = 'http://your-domain:8080/api/chatbot';<br>
+                    // hoặc nếu cùng domain<br>
+                    const CHATBOT_API = '/api/chatbot';
+                    </code>
+                </div>
+            </div>
+
+            <div class="step">
+                <strong>Bước 4: Bật CORS trong Spring Boot</strong>
+                <div class="code-block">
+                    <code>// Sẽ tự động enable trong ChatBotController<br>
+                    @CrossOrigin(origins = "*")
+                    </code>
+                </div>
+            </div>
+
+            <div class="step">
+                <strong>Bước 5: Test API</strong>
+                <div class="code-block">
+                    <code>curl -X POST http://localhost:8080/api/chatbot/message \<br>
+                    &nbsp;&nbsp;-H "Content-Type: application/json" \<br>
+                    &nbsp;&nbsp;-d '{"userMessage":"Xin chào"}'
+                    </code>
+                </div>
+            </div>
+        </div>
+
+        <!-- DỮ LIỆU MẪU -->
+        <div class="demo-section">
+            <h2>📊 Dữ Liệu Mẫu - 5 Điện Thoại Phổ Biến</h2>
+            <p>ChatBot hiện hỗ trợ 5 sản phẩm mẫu:</p>
+            <div class="demo-grid-2col">
+                <div class="feature-card">
+                    <h4>1. iPhone 15 Pro</h4>
+                    <p>💰 Giá: 24,990,000 ₫ → 23,990,000 ₫<br>
+                    📊 A17 Pro | 8GB RAM | 256GB<br>
+                    🔋 3,200mAh | 📷 48MP + 12MP + 12MP<br>
+                    📦 Còn 15 sản phẩm</p>
+                </div>
+                <div class="feature-card">
+                    <h4>2. Samsung S24 Ultra</h4>
+                    <p>💰 Giá: 23,990,000 ₫ → 22,490,000 ₫<br>
+                    📊 Snapdragon 8 Gen 3 | 12GB | 512GB<br>
+                    🔋 5,000mAh | 📷 200MP + 50MP + 10MP<br>
+                    📦 Còn 12 sản phẩm</p>
+                </div>
+                <div class="feature-card">
+                    <h4>3. Xiaomi 14T Pro</h4>
+                    <p>💰 Giá: 12,990,000 ₫ → 11,490,000 ₫<br>
+                    📊 Snapdragon 8 Gen 3 | 12GB | 512GB<br>
+                    🔋 5,160mAh | 📷 50MP + 50MP + 46MP<br>
+                    📦 Còn 25 sản phẩm</p>
+                </div>
+                <div class="feature-card">
+                    <h4>4. OPPO Reno 11 Pro</h4>
+                    <p>💰 Giá: 10,990,000 ₫ → 9,990,000 ₫<br>
+                    📊 Snapdragon 8 Gen 2 | 12GB | 256GB<br>
+                    🔋 5,000mAh | 📷 50MP + 48MP + 32MP<br>
+                    📦 Còn 20 sản phẩm</p>
+                </div>
+                <div class="feature-card">
+                    <h4>5. Nothing Phone 2</h4>
+                    <p>💰 Giá: 8,990,000 ₫ → 7,990,000 ₫<br>
+                    📊 Snapdragon 8+ Gen 1 | 12GB | 256GB<br>
+                    🔋 4,700mAh | 📷 50MP + 50MP<br>
+                    📦 Còn 30 sản phẩm</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ARCHITECTURE -->
+        <div class="demo-section">
+            <h2>🏗️ Kiến Trúc Hệ Thống</h2>
+            <div class="code-block">
+                <code>
+MobileStore ChatBot Architecture<br>
+<br>
+Frontend (Browser)<br>
+├── chatbot.html (Widget UI)<br>
+├── assets/css/chatbot.css (Styling)<br>
+└── assets/js/chatbot.js (Logic)<br>
+<br>
+Backend (Spring Boot)<br>
+├── springcontroller/ChatBotController.java (REST Endpoints)<br>
+├── service/ChatBotService.java (Business Logic)<br>
+├── dao/ChatProductDAO.java (Product Data)<br>
+├── dao/ShippingDAO.java (Shipping Data)<br>
+└── model/*<br>
+    ├── ChatRequest.java<br>
+    ├── ChatResponse.java<br>
+    ├── ChatProductSpec.java<br>
+    ├── ShippingInfo.java<br>
+    └── ChatMessage.java<br>
+<br>
+Database (Sample Data - In Memory)<br>
+└── 5 Sample Products
+                </code>
+            </div>
+        </div>
+
+        <!-- NEXT STEPS -->
+        <div class="demo-section">
+            <h2>🚀 Bước Tiếp Theo & Nâng Cấp</h2>
+            <div class="demo-grid-2col">
+                <div class="feature-card">
+                    <h3>Kết nối Database</h3>
+                    <p>• Thay sample data bằng MySQL/PostgreSQL<br>
+                    • Cập nhật giá/kho realtime<br>
+                    • Lưu lịch chat của user</p>
+                </div>
+                <div class="feature-card">
+                    <h3>AI & NLP</h3>
+                    <p>• Tích hợp OpenAI/Gemini API<br>
+                    • Xử lý ngôn ngữ tự nhiên tốt hơn<br>
+                    • Machine learning for personalization</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Payment Integration</h3>
+                    <p>• Kết nối VNPAY, Momo<br>
+                    • Xử lý thanh toán trực tiếp qua bot<br>
+                    • Quản lý đơn hàng realtime</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Analytics</h3>
+                    <p>• Tracking user behavior<br>
+                    • Conversation analytics<br>
+                    • Dashboard statistics</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Multi-language</h3>
+                    <p>• Support English, Chinese<br>
+                    • Auto language detection<br>
+                    • Translation API integration</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Mobile App</h3>
+                    <p>• Native mobile app<br>
+                    • Push notifications<br>
+                    • Offline support</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUPPORT -->
+        <div class="demo-section demo-support">
+            <h2>📞 Hỗ Trợ & Liên Hệ</h2>
+            <p>
+                <strong>Để nâng cấp hoặc tùy chỉnh chatbot:</strong><br>
+                📧 Email: support@mobilestore.vn<br>
+                📱 Hotline: 1900 xxxx<br>
+                💬 Chat: Qua bot trên website<br>
+                🌐 Website: mobilestore.vn
+            </p>
+        </div>
+
+        <hr class="demo-divider">
+        <p class="demo-footer">
+            © 2024 MobileStore ChatBot. All rights reserved.<br>
+            Version: 1.0 | Last Updated: April 2024
+        </p>
+    </div>
+</body>
+</html>

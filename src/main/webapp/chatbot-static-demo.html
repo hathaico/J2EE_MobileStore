@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MobileStore Bot - Static UI Demo</title>
+    <style>
+        :root {
+            --bg-1: #eef3ff;
+            --bg-2: #e8ecff;
+            --card: #ffffff;
+            --text: #1f2a44;
+            --muted: #6b7695;
+            --line: #dde4ff;
+            --primary: #3558d6;
+            --primary-2: #4b3db7;
+            --bot-bubble: #f4f7ff;
+            --user-bubble: #3f52ca;
+            --shadow: 0 20px 45px rgba(25, 45, 110, 0.18);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 20% 0%, #dbe5ff 0%, transparent 45%),
+                radial-gradient(circle at 85% 10%, #ded7ff 0%, transparent 40%),
+                linear-gradient(135deg, var(--bg-1), var(--bg-2));
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+
+        .demo-shell {
+            width: min(100%, 420px);
+        }
+
+        .chatbox {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .chatbox-header {
+            padding: 16px;
+            color: #fff;
+            background: linear-gradient(120deg, var(--primary), var(--primary-2));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chatbox-title h1 {
+            margin: 0;
+            font-size: 20px;
+            line-height: 1.1;
+            font-weight: 700;
+        }
+
+        .chatbox-title p {
+            margin: 6px 0 0;
+            font-size: 13px;
+            opacity: 0.92;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 34px;
+            height: 34px;
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.2);
+            font-size: 17px;
+            cursor: pointer;
+            transition: transform 0.15s ease, background 0.2s ease;
+        }
+
+        .icon-btn:hover {
+            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .chatbox-body {
+            background: #f8faff;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 440px;
+            max-height: 58vh;
+            overflow-y: auto;
+        }
+
+        .msg {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .msg-left {
+            align-items: flex-start;
+        }
+
+        .msg-right {
+            align-items: flex-end;
+        }
+
+        .msg-bubble {
+            max-width: 87%;
+            padding: 10px 12px;
+            border-radius: 12px;
+            line-height: 1.5;
+            font-size: 14px;
+            border: 1px solid transparent;
+        }
+
+        .msg-left .msg-bubble {
+            background: var(--bot-bubble);
+            border-color: #dce5ff;
+            border-radius: 12px 12px 12px 4px;
+        }
+
+        .msg-right .msg-bubble {
+            color: #fff;
+            background: var(--user-bubble);
+            border-radius: 12px 12px 4px 12px;
+        }
+
+        .msg-time {
+            font-size: 11px;
+            color: var(--muted);
+            padding: 0 4px;
+        }
+
+        .product-card {
+            margin-top: 8px;
+            border-left: 3px solid var(--primary);
+            background: #ffffff;
+            border-radius: 10px;
+            border: 1px solid #dfE6ff;
+            padding: 10px;
+        }
+
+        .product-card strong {
+            display: block;
+            margin-bottom: 6px;
+            color: #213168;
+        }
+
+        .chip-row {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip {
+            border: 1px solid #c7d5ff;
+            background: #edf2ff;
+            color: #2e3f7a;
+            border-radius: 999px;
+            padding: 7px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .chip:hover {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .quick-actions {
+            border-top: 1px solid var(--line);
+            background: #fff;
+            padding: 10px;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+        }
+
+        .quick-btn {
+            border: 1px solid #d0dafd;
+            background: #f4f7ff;
+            color: #2a386f;
+            border-radius: 999px;
+            white-space: nowrap;
+            padding: 8px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .quick-btn:hover {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .chatbox-input {
+            border-top: 1px solid var(--line);
+            background: #fff;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chatbox-input input {
+            flex: 1;
+            height: 40px;
+            border-radius: 999px;
+            border: 1px solid #cfd8f8;
+            padding: 0 14px;
+            outline: none;
+            font-size: 14px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .chatbox-input input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(53, 88, 214, 0.12);
+        }
+
+        .send-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            background: linear-gradient(120deg, var(--primary), #5f6ff0);
+            color: #fff;
+            font-size: 16px;
+            transition: transform 0.15s ease, filter 0.2s ease;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.07);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 520px) {
+            body {
+                padding: 8px;
+            }
+
+            .demo-shell {
+                width: 100%;
+            }
+
+            .chatbox {
+                border-radius: 14px;
+            }
+
+            .chatbox-body {
+                min-height: 56vh;
+                max-height: 56vh;
+            }
+
+            .msg-bubble {
+                max-width: 92%;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="demo-shell">
+    <section class="chatbox" id="chatbox">
+        <header class="chatbox-header">
+            <div class="chatbox-title">
+                <h1>MobileStore Bot</h1>
+                <p>Trợ lý bán hàng ảo</p>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" type="button" aria-label="Thu nhỏ">_</button>
+                <button class="icon-btn" type="button" aria-label="Đóng">✕</button>
+            </div>
+        </header>
+
+        <div class="chatbox-body" id="chatBody">
+            <article class="msg msg-left">
+                <div class="msg-bubble">
+                    Còn hàng (20 sản phẩm)
+                </div>
+                <small class="msg-time">02:49</small>
+            </article>
+
+            <article class="msg msg-left">
+                <div class="msg-bubble">
+                    <div class="product-card">
+                        <strong>3. Tai nghe Bluetooth Apple AirPods 4 | Chính hãng Apple Việt Nam</strong>
+                        <div>Thương hiệu: Apple</div>
+                        <div>Giá: 3.790.000 đ</div>
+                        <div>CPU: Đang cập nhật | RAM: 8GB | ROM: 128GB</div>
+                        <div>Tình trạng: Còn hàng (100 sản phẩm)</div>
+                    </div>
+
+                    <div class="chip-row" id="suggestionChips">
+                        <button class="chip" type="button">Máy nào phù hợp chơi game?</button>
+                        <button class="chip" type="button">Máy nào pin tốt hơn?</button>
+                        <button class="chip" type="button">Tư vấn thêm theo ngân sách của tôi</button>
+                    </div>
+                </div>
+                <small class="msg-time">02:49</small>
+            </article>
+        </div>
+
+        <div class="quick-actions" id="quickActions">
+            <button class="quick-btn" type="button">Tư vấn theo ngân sách</button>
+            <button class="quick-btn" type="button">So sánh sản phẩm</button>
+            <button class="quick-btn" type="button">Xem khuyến mãi</button>
+        </div>
+
+        <form class="chatbox-input" id="chatInputForm">
+            <input id="chatInput" type="text" placeholder="Nhập tin nhắn của bạn..." autocomplete="off">
+            <button class="send-btn" type="submit" aria-label="Gửi">➤</button>
+        </form>
+    </section>
+</div>
+
+<script>
+    (function () {
+        const chatBody = document.getElementById('chatBody');
+        const chatInput = document.getElementById('chatInput');
+        const chatInputForm = document.getElementById('chatInputForm');
+
+        function nowTime() {
+            const now = new Date();
+            return String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        }
+
+        function appendUserMessage(text) {
+            const message = document.createElement('article');
+            message.className = 'msg msg-right';
+            message.innerHTML =
+                '<div class="msg-bubble"></div>' +
+                '<small class="msg-time"></small>';
+            message.querySelector('.msg-bubble').textContent = text;
+            message.querySelector('.msg-time').textContent = nowTime();
+            chatBody.appendChild(message);
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        function bindQuickButtons(selector) {
+            document.querySelectorAll(selector).forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    appendUserMessage(btn.textContent.trim());
+                });
+            });
+        }
+
+        bindQuickButtons('.chip');
+        bindQuickButtons('.quick-btn');
+
+        chatInputForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const text = chatInput.value.trim();
+            if (!text) {
+                chatInput.focus();
+                return;
+            }
+            appendUserMessage(text);
+            chatInput.value = '';
+        });
+    })();
+</script>
+</body>
+</html>

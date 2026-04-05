@@ -20,12 +20,6 @@
     </properties>
 
     <dependencies>
-                <!-- BCrypt for password hashing -->
-                <dependency>
-                    <groupId>org.mindrot</groupId>
-                    <artifactId>jbcrypt</artifactId>
-                    <version>0.4</version>
-                </dependency>
         <!-- Servlet API (Jakarta EE 9 for Tomcat 10) -->
         <dependency>
             <groupId>jakarta.servlet</groupId>
@@ -77,6 +71,13 @@
             <version>0.4</version>
         </dependency>
 
+        <!-- JSON Processing with Gson -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1</version>
+        </dependency>
+
         <!-- Lombok (optional, for reducing boilerplate code) -->
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -90,13 +91,6 @@
             <groupId>com.sun.mail</groupId>
             <artifactId>javax.mail</artifactId>
             <version>1.6.2</version>
-        </dependency>
-
-        <!-- JSON Processing -->
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.10.1</version>
         </dependency>
 
         <!-- Apache POI (for Excel export) -->

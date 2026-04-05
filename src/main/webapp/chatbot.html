@@ -1,0 +1,53 @@
+<!-- Chatbot Widget HTML -->
+<div id="chatbot-widget" class="chatbot-container">
+    <!-- Chat Header -->
+    <div class="chat-header">
+        <div class="header-left">
+            <h3>🤖 MobileStore Bot</h3>
+            <p>Trợ lý bán hàng ảo</p>
+        </div>
+        <button id="minimize-btn" class="header-btn">_</button>
+        <button id="close-btn" class="header-btn">✕</button>
+    </div>
+
+    <!-- Chat Messages Area -->
+    <div id="chat-messages" class="chat-messages">
+        <div class="message bot-message">
+            <div class="message-content">
+                👋 Xin chào! Tôi là trợ lý bán hàng ảo của cửa hàng. Tôi rất vui được giúp bạn tìm được chiếc điện thoại hoặc thiết bị phù hợp nhất.
+            </div>
+            <small class="message-time">Vừa xong</small>
+        </div>
+    </div>
+
+    <!-- Suggested Questions -->
+    <div id="suggested-questions" class="suggested-questions">
+        <button class="suggestion-btn" onclick="sendMessage('Tư vấn giúp tôi với ngân sách 10 triệu')">
+            Tư vấn theo ngân sách
+        </button>
+        <button class="suggestion-btn" onclick="sendMessage('So sánh iPhone 15 và Samsung S24')">
+            So sánh sản phẩm
+        </button>
+        <button class="suggestion-btn" onclick="sendMessage('Có ưu đãi nào không?')">
+            Xem khuyến mãi
+        </button>
+    </div>
+
+    <!-- Chat Input Area -->
+    <div class="chat-input-area">
+        <input 
+            type="text" 
+            id="chat-input" 
+            placeholder="Nhập tin nhắn của bạn..." 
+            onkeypress="handleKeyPress(event)"
+        >
+        <button id="send-btn" onclick="sendMessage()" class="send-btn">
+            ➤
+        </button>
+    </div>
+</div>
+
+<!-- Floating Button (when minimized) -->
+<button id="chatbot-toggle" class="chatbot-toggle chatbot-hidden" onclick="toggleChatbot()">
+    💬 Chat
+</button>
