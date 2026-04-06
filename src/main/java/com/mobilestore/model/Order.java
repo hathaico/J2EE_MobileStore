@@ -14,7 +14,7 @@ public class Order {
     private String shippingAddress;
     private BigDecimal totalAmount;
     private String status; // PENDING, CONFIRMED, SHIPPING, DELIVERED, CANCELLED
-    private String paymentMethod; // COD, BANK_TRANSFER, CREDIT_CARD
+    private String paymentMethod; // CASH, CREDIT_CARD
     private String paymentStatus; // UNPAID, PAID
     private String notes;
     private LocalDateTime createdAt;
@@ -217,10 +217,6 @@ public class Order {
         switch (paymentMethod) {
             case "CASH":
                 return "Thanh toán khi nhận hàng";
-            case "BANK_TRANSFER":
-                return "Chuyển khoản ngân hàng";
-            case "MOMO":
-                return "Ví MoMo";
             case "CREDIT_CARD":
                 return "VNPay (ATM/Visa/Mastercard)";
             default:

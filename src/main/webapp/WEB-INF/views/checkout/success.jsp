@@ -67,16 +67,6 @@
                                 <i class="bi bi-exclamation-triangle-fill me-2"></i>Thanh toán thẻ chưa thành công. Bạn có thể thanh toán lại sau.
                             </div>
                         </c:if>
-                        <c:if test="${param.payment == 'momo_success'}">
-                            <div class="alert alert-success" role="alert">
-                                <i class="bi bi-check-circle-fill me-2"></i>Thanh toán qua ví MoMo thành công.
-                            </div>
-                        </c:if>
-                        <c:if test="${param.payment == 'momo_failed'}">
-                            <div class="alert alert-warning" role="alert">
-                                <i class="bi bi-exclamation-triangle-fill me-2"></i>Thanh toán MoMo chưa thành công. Bạn có thể thanh toán lại sau.
-                            </div>
-                        </c:if>
                         
                         <!-- Customer Information Row -->
                         <div class="row g-3 mb-4">

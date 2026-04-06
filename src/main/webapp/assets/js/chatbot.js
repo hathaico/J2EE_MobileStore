@@ -17,11 +17,15 @@
         endpoint: 'https://api.deepseek.com/chat/completions'
     };
 
+    const TRAINING_DATASET_URL = CONTEXT_PATH + '/assets/data/chatbot-training-dataset.json';
+
     let ui = null;
     let isSending = false;
     let compareBuffer = [];
     let hasShownAiFallbackNotice = false;
     let conversationHistory = [];
+    let trainingDatasetPromise = null;
+    let trainingDatasetCache = null;
 
     const QUICK_ACTIONS = {
         compare: 'So sánh iPhone 15 và Samsung S24',
@@ -359,11 +363,12 @@
     }
 
     async function requestDeepSeekReply(cfg, message, backendData) {
+        const messages = await buildAiMessages(message, backendData);
         const payload = {
             model: cfg.model || DEFAULT_AI.model,
             temperature: 0.35,
             max_tokens: 700,
-            messages: buildAiMessages(message, backendData)
+            messages: messages
         };
 
         const response = await fetch(cfg.endpoint || DEFAULT_AI.endpoint, {
@@ -388,7 +393,28 @@
         return String(content || '').trim();
     }
 
-    function buildAiMessages(message, backendData) {
+    async function buildAiMessages(message, backendData) {
+        const trainingDataset = await loadTrainingDataset();
+
+        if (!trainingDataset) {
+            return buildLegacyAiMessages(message, backendData);
+        }
+
+        const systemPrompt = buildTrainingSystemPrompt(trainingDataset);
+        const exampleMessages = buildFewShotMessages(trainingDataset, message, backendData);
+        const history = conversationHistory.slice(-6);
+        const groundedData = serializeBackendData(backendData);
+        const userPrompt = groundedData
+            ? message + '\n\nDỮ LIỆU THAM CHIẾU:\n' + groundedData
+            : message;
+
+        return [{ role: 'system', content: systemPrompt }]
+            .concat(exampleMessages)
+            .concat(history)
+            .concat([{ role: 'user', content: userPrompt }]);
+    }
+
+    function buildLegacyAiMessages(message, backendData) {
         const systemPrompt = [
             '=== MOBILESTORE CHATBOT TRAINING ===',
             '',
@@ -450,6 +476,204 @@
         return [{ role: 'system', content: systemPrompt }]
             .concat(history)
             .concat([{ role: 'user', content: userPrompt }]);
+    }
+
+    async function loadTrainingDataset() {
+        if (trainingDatasetCache) {
+            return trainingDatasetCache;
+        }
+
+        if (!trainingDatasetPromise) {
+            trainingDatasetPromise = fetch(TRAINING_DATASET_URL, { headers: { Accept: 'application/json' } })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error('Training dataset HTTP ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(function (data) {
+                    return data && typeof data === 'object' ? data : null;
+                })
+                .catch(function () {
+                    return null;
+                });
+        }
+
+        trainingDatasetCache = await trainingDatasetPromise;
+        return trainingDatasetCache;
+    }
+
+    function buildTrainingSystemPrompt(trainingDataset) {
+        const lines = [
+            '=== MOBILESTORE CHATBOT TRAINING ===',
+            '',
+            'BẠN LÀ AI TRỢ LỢ BÁN HÀNG MOBILESTORE',
+            '- Trả lời bằng tiếng Việt thân thiện, ngắn gọn (dưới 200 từ/chunk)',
+            '- Ưu tiên dùng DỮ LIỆU THAM CHIẾU để tránh bịa thông tin',
+            '- Nếu dữ liệu thiếu hoặc mâu thuẫn, ưu tiên backend mới nhất và nói rõ tình trạng',
+            '- KHÔNG trả lời ngoài: mua sắm, tồn kho, giá, so sánh, khuyến mãi, đơn hàng, bảo hành',
+            '- Nếu câu hỏi mơ hồ, hỏi lại 1 câu để làm rõ nhu cầu',
+            '- Không lưu thông tin nhạy cảm như số điện thoại, địa chỉ, mã thanh toán',
+            ''
+        ];
+
+        const intents = Array.isArray(trainingDataset.intents) ? trainingDataset.intents : [];
+        lines.push('INTENT CHÍNH & CỬ CHỈ:');
+        intents.slice(0, 12).forEach(function (intent, index) {
+            if (!intent || !intent.name) {
+                return;
+            }
+
+            const keywordText = Array.isArray(intent.keywords) && intent.keywords.length > 0
+                ? intent.keywords.slice(0, 4).join(', ')
+                : '...';
+            const example = Array.isArray(intent.examples) && intent.examples.length > 0
+                ? intent.examples[0].expected
+                : '...';
+            lines.push((index + 1) + '. ' + intent.name + ' (' + keywordText + ') → ' + String(example).slice(0, 180));
+        });
+
+        const tone = trainingDataset.tone_and_voice || {};
+        if (Array.isArray(tone.do) && tone.do.length > 0) {
+            lines.push('');
+            lines.push('TONE & VOICE:');
+            tone.do.slice(0, 5).forEach(function (item) {
+                lines.push('✓ ' + item);
+            });
+            if (Array.isArray(tone.dont) && tone.dont.length > 0) {
+                tone.dont.slice(0, 5).forEach(function (item) {
+                    lines.push('✗ ' + item);
+                });
+            }
+        }
+
+        const edgeCases = Array.isArray(trainingDataset.edge_cases) ? trainingDataset.edge_cases : [];
+        if (edgeCases.length > 0) {
+            lines.push('');
+            lines.push('EDGE CASES:');
+            edgeCases.slice(0, 4).forEach(function (edgeCase) {
+                if (!edgeCase || !edgeCase.scenario || !edgeCase.action) {
+                    return;
+                }
+                lines.push('- ' + edgeCase.scenario + ' → ' + edgeCase.action);
+            });
+        }
+
+        const masterSummary = buildMasterDataSummary(trainingDataset);
+        if (masterSummary) {
+            lines.push('');
+            lines.push('MASTER DATA (rút gọn từ dataset):');
+            lines.push(masterSummary);
+        }
+
+        const contactInfo = trainingDataset.contact_info || {};
+        if (contactInfo.hotline || contactInfo.email) {
+            lines.push('');
+            lines.push('LIÊN HỆ HỖ TRỢ:');
+            if (contactInfo.hotline) {
+                lines.push('- Hotline: ' + contactInfo.hotline);
+            }
+            if (contactInfo.email) {
+                lines.push('- Email: ' + contactInfo.email);
+            }
+        }
+
+        return lines.join('\n');
+    }
+
+    function buildFewShotMessages(trainingDataset, message, backendData) {
+        const intents = Array.isArray(trainingDataset.intents) ? trainingDataset.intents : [];
+        const ranked = rankIntentsForMessage(intents, message, backendData).slice(0, 2);
+        const messages = [];
+
+        ranked.forEach(function (intent) {
+            if (!intent || !Array.isArray(intent.examples) || intent.examples.length === 0) {
+                return;
+            }
+
+            const example = intent.examples[0];
+            if (!example || !example.user || !example.expected) {
+                return;
+            }
+
+            messages.push({ role: 'user', content: String(example.user).trim() });
+            messages.push({ role: 'assistant', content: String(example.expected).trim() });
+        });
+
+        return messages;
+    }
+
+    function rankIntentsForMessage(intents, message, backendData) {
+        const normalizedMessage = normalizeMatchText(message);
+        const normalizedBackend = normalizeMatchText(backendData && backendData.responseType ? backendData.responseType : '');
+
+        return intents
+            .map(function (intent) {
+                const keywords = Array.isArray(intent.keywords) ? intent.keywords : [];
+                let score = 0;
+
+                keywords.forEach(function (keyword) {
+                    const normalizedKeyword = normalizeMatchText(keyword);
+                    if (normalizedKeyword && normalizedMessage.includes(normalizedKeyword)) {
+                        score += 2;
+                    }
+                    if (normalizedKeyword && normalizedBackend && normalizedBackend.includes(normalizedKeyword)) {
+                        score += 1;
+                    }
+                });
+
+                if (intent.name === 'GREETING' && /(^|\s)(hi|hello|xin chao|chao)(\s|$)/i.test(normalizedMessage)) {
+                    score += 3;
+                }
+
+                return { intent: intent, score: score };
+            })
+            .filter(function (entry) {
+                return entry.score > 0;
+            })
+            .sort(function (a, b) {
+                return b.score - a.score;
+            })
+            .map(function (entry) {
+                return entry.intent;
+            });
+    }
+
+    function buildMasterDataSummary(trainingDataset) {
+        const masterData = trainingDataset.master_data || {};
+        const products = Array.isArray(masterData.products) ? masterData.products : [];
+
+        if (products.length === 0) {
+            return '';
+        }
+
+        return products.slice(0, 5).map(function (product) {
+            const name = product && product.name ? product.name : 'Sản phẩm';
+            const price = typeof product.price === 'number' ? formatPrice(product.price) : 'Đang cập nhật';
+            const stock = product && typeof product.stock !== 'undefined' ? String(product.stock) : '0';
+            const specs = [];
+
+            if (product && product.cpu) {
+                specs.push('CPU ' + product.cpu);
+            }
+            if (product && product.ram) {
+                specs.push('RAM ' + product.ram + 'GB');
+            }
+            if (product && product.battery) {
+                specs.push('Pin ' + product.battery);
+            }
+
+            return '- ' + name + ': ' + price + ' | stock ' + stock + (specs.length > 0 ? ' | ' + specs.join(' | ') : '');
+        }).join('\n');
+    }
+
+    function normalizeMatchText(text) {
+        return String(text || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
     }
 
     function serializeBackendData(backendData) {
@@ -573,9 +797,13 @@
             const p = mapProduct(product);
             const card = document.createElement('div');
             card.className = 'product-card';
+            const imageHtml = p.imageUrl
+                ? '<img class="product-image-img" src="' + escapeAttr(p.imageUrl) + '" alt="' + escapeAttr(p.name) + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">'
+                : '';
+            const fallbackStyle = p.imageUrl ? ' style="display:none;"' : '';
             card.innerHTML = [
                 '<div class="product-top">',
-                '  <div class="product-image">🎧</div>',
+                '  <div class="product-image">' + imageHtml + '<span class="product-image-fallback"' + fallbackStyle + '>📱</span></div>',
                 '  <div>',
                 '    <div class="product-brand">' + escapeHtml((p.brand || 'N/A').toUpperCase()) + ' ⭐</div>',
                 '    <div class="product-title">' + escapeHtml(p.name) + '</div>',
@@ -756,8 +984,47 @@
             ram: Number(raw.ram || 8),
             storage: Number(raw.storage || 128),
             color: (raw.colors ? String(raw.colors).split(',')[0].trim() : 'Trắng') || 'Trắng',
-            rating: Number(raw.rating || 4.5).toFixed(1)
+            rating: Number(raw.rating || 4.5).toFixed(1),
+            imageUrl: resolveProductImageUrl(raw.imageUrl || raw.image || raw.thumbnailUrl || raw.thumbnail || raw.productImageUrl)
         };
+    }
+
+    function resolveProductImageUrl(rawUrl) {
+        const value = String(rawUrl || '').trim();
+        if (!value) {
+            return '';
+        }
+
+        let normalized = value.replace(/\\/g, '/');
+
+        if (/^[A-Za-z]:\//.test(normalized)) {
+            const fileName = normalized.split('/').pop() || '';
+            normalized = fileName;
+        }
+
+        if (normalized.includes(',')) {
+            normalized = normalized.split(',')[0].trim();
+        }
+
+        if (/^https?:\/\//i.test(normalized)) {
+            return normalized;
+        }
+
+        if (normalized.startsWith('/')) {
+            if (CONTEXT_PATH && normalized.startsWith(CONTEXT_PATH + '/')) {
+                return normalized;
+            }
+            return CONTEXT_PATH + normalized;
+        }
+
+        const marker = 'assets/images/products/';
+        const markerIndex = normalized.toLowerCase().indexOf(marker);
+        if (markerIndex >= 0) {
+            const relative = normalized.substring(markerIndex).replace(/^\/+/, '');
+            return CONTEXT_PATH + '/' + relative;
+        }
+
+        return CONTEXT_PATH + '/assets/images/products/' + normalized.replace(/^\/+/, '');
     }
 
     function formatPrice(v) {

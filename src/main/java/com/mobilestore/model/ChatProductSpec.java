@@ -20,6 +20,7 @@ public class ChatProductSpec implements Serializable {
     private Integer stock;
     private String description;
     private Double rating;
+    private String imageUrl;
 
     public ChatProductSpec() {}
 
@@ -142,6 +143,14 @@ public class ChatProductSpec implements Serializable {
 
     public void setRating(Double rating) {
         this.rating = rating;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public String getStockStatus() {

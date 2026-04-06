@@ -5,15 +5,276 @@ import com.mobilestore.dao.ChatProductDAO;
 import com.mobilestore.dao.OrderDAO;
 import com.mobilestore.dao.ShippingDAO;
 import com.mobilestore.dao.VoucherDAO;
+import jakarta.servlet.ServletContext;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.Properties;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class ChatBotService {
+    private static final String TRAINING_DATASET_PATH = "/assets/data/chatbot-training-dataset.json";
+    private static final String TRAINING_DATASET_SNAPSHOT_FILE = "chatbot-training-dataset.snapshot.json";
+    private static final String TRAINING_DATASET_HISTORY_PREFIX = "chatbot-training-dataset.";
+    private static final String TRAINING_DATASET_HISTORY_SUFFIX = ".json";
+    private static final String TRAINING_HISTORY_RETENTION_PROPERTY = "chatbot.training.history.retention-days";
+    private static final String TRAINING_HISTORY_RETENTION_ENV = "CHATBOT_TRAINING_HISTORY_RETENTION_DAYS";
+    private static final int DEFAULT_TRAINING_HISTORY_RETENTION_DAYS = 30;
+
     private ChatProductDAO productDAO = new ChatProductDAO();
     private ShippingDAO shippingDAO = new ShippingDAO();
     private VoucherDAO voucherDAO = new VoucherDAO();
     private OrderDAO orderDAO = new OrderDAO();
+    private final com.google.gson.Gson gson = new com.google.gson.Gson();
+
+    private ServletContext servletContext;
+    private volatile TrainingDataset trainingDataset;
+
+    public void setServletContext(ServletContext servletContext) {
+        this.servletContext = servletContext;
+    }
+
+    public void clearTrainingDatasetCache() {
+        synchronized (this) {
+            trainingDataset = null;
+        }
+    }
+
+    public String exportTrainingDatasetSnapshotJson() {
+        TrainingDataset dataset = loadTrainingDataset();
+        if (dataset == null) {
+            return "{}";
+        }
+
+        com.google.gson.JsonObject root = gson.toJsonTree(dataset).getAsJsonObject();
+        com.google.gson.JsonObject masterData = root.has("master_data") && root.get("master_data").isJsonObject()
+                ? root.getAsJsonObject("master_data")
+                : new com.google.gson.JsonObject();
+
+        masterData.add("products", gson.toJsonTree(getAllProductsAcrossSources()));
+        masterData.add("promotions", gson.toJsonTree(buildTrainingPromotionSnapshots()));
+        root.add("master_data", masterData);
+
+        return gson.toJson(root);
+    }
+
+    public String writeTrainingDatasetSnapshotFile() throws java.io.IOException {
+        String snapshotJson = exportTrainingDatasetSnapshotJson();
+        Path snapshotPath = resolveTrainingDatasetSnapshotPath();
+
+        Path parent = snapshotPath.getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+
+        Files.writeString(snapshotPath, snapshotJson, StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+
+        return snapshotPath.toAbsolutePath().toString();
+    }
+
+    public String writeTrainingDatasetPrimaryFile() throws java.io.IOException {
+        String snapshotJson = exportTrainingDatasetSnapshotJson();
+        Path datasetPath = resolveTrainingDatasetPrimaryPath();
+
+        Path parent = datasetPath.getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+
+        Files.writeString(datasetPath, snapshotJson, StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+
+        writeTrainingDatasetHistoryCopy(snapshotJson);
+        pruneTrainingDatasetVersions(resolveTrainingHistoryRetentionDays());
+
+        clearTrainingDatasetCache();
+        return datasetPath.toAbsolutePath().toString();
+    }
+
+    public String restoreTrainingDatasetFromFile(String fileName) throws java.io.IOException {
+        Path sourcePath = resolveTrainingDatasetHistoryPath(fileName);
+        if (sourcePath == null || !Files.exists(sourcePath)) {
+            throw new java.io.FileNotFoundException("Training dataset version not found: " + fileName);
+        }
+
+        String content = Files.readString(sourcePath, StandardCharsets.UTF_8);
+        Path datasetPath = resolveTrainingDatasetPrimaryPath();
+        Path parent = datasetPath.getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+
+        Files.writeString(datasetPath, content, StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+
+        clearTrainingDatasetCache();
+        return datasetPath.toAbsolutePath().toString();
+    }
+
+    public List<TrainingDatasetVersionInfo> listTrainingDatasetVersions() {
+        Path historyDir = resolveTrainingDatasetHistoryDirectory();
+        if (historyDir == null || !Files.exists(historyDir) || !Files.isDirectory(historyDir)) {
+            return Collections.emptyList();
+        }
+
+        List<TrainingDatasetVersionInfo> versions = new ArrayList<>();
+        try (java.util.stream.Stream<Path> paths = Files.list(historyDir)) {
+            paths.filter(path -> Files.isRegularFile(path))
+                    .filter(path -> isTrainingDatasetHistoryFile(path.getFileName().toString()))
+                    .sorted((a, b) -> {
+                        try {
+                            return Files.getLastModifiedTime(b).compareTo(Files.getLastModifiedTime(a));
+                        } catch (java.io.IOException e) {
+                            return a.getFileName().toString().compareToIgnoreCase(b.getFileName().toString());
+                        }
+                    })
+                    .limit(12)
+                    .forEach(path -> versions.add(buildVersionInfo(path)));
+        } catch (java.io.IOException ignored) {
+            return versions;
+        }
+
+        return versions;
+    }
+
+    public int pruneTrainingDatasetVersions(int olderThanDays) {
+        if (olderThanDays < 0) {
+            return 0;
+        }
+
+        Path historyDir = resolveTrainingDatasetHistoryDirectory();
+        if (historyDir == null || !Files.exists(historyDir) || !Files.isDirectory(historyDir)) {
+            return 0;
+        }
+
+        long cutoffMillis = System.currentTimeMillis() - (olderThanDays * 24L * 60L * 60L * 1000L);
+        int deletedCount = 0;
+
+        try (java.util.stream.Stream<Path> paths = Files.list(historyDir)) {
+            List<Path> candidates = paths
+                    .filter(path -> Files.isRegularFile(path))
+                    .filter(path -> isTrainingDatasetHistoryFile(path.getFileName().toString()))
+                    .collect(Collectors.toList());
+
+            for (Path file : candidates) {
+                try {
+                    long modified = Files.getLastModifiedTime(file).toMillis();
+                    if (modified < cutoffMillis) {
+                        Files.deleteIfExists(file);
+                        deletedCount++;
+                    }
+                } catch (java.io.IOException ignored) {
+                    // Skip any file that cannot be deleted.
+                }
+            }
+        } catch (java.io.IOException ignored) {
+            return deletedCount;
+        }
+
+        return deletedCount;
+    }
+
+    @SuppressWarnings("unused")
+    private static class TrainingDataset {
+        List<TrainingIntent> intents;
+        TrainingMasterData master_data;
+        TrainingTone tone_and_voice;
+        List<TrainingEdgeCase> edge_cases;
+        TrainingContactInfo contact_info;
+    }
+
+    private static class TrainingIntent {
+        String name;
+        List<String> keywords;
+    }
+
+    private static class TrainingMasterData {
+        List<TrainingProductData> products;
+        List<TrainingPromotionData> promotions;
+    }
+
+    private static class TrainingProductData {
+        Integer id;
+        String name;
+        Integer price;
+        Integer original_price;
+        Integer stock;
+        String status;
+        String cpu;
+        Integer ram;
+        String storage;
+        String battery;
+        String camera;
+        Double rating;
+        List<String> colors;
+        String image;
+        String image_url;
+        String imageUrl;
+    }
+
+    private static class TrainingPromotionData {
+        String id;
+        String title;
+        String discount;
+        Boolean active;
+    }
+
+    @SuppressWarnings("unused")
+    private static class TrainingTone {
+        @com.google.gson.annotations.SerializedName("do")
+        List<String> doItems;
+        List<String> dont;
+    }
+
+    @SuppressWarnings("unused")
+    private static class TrainingEdgeCase {
+        String scenario;
+        String action;
+    }
+
+    @SuppressWarnings("unused")
+    private static class TrainingContactInfo {
+        String hotline;
+        String email;
+    }
+
+    @SuppressWarnings("unused")
+    private static class TrainingPromotionSnapshot {
+        String id;
+        String title;
+        String discount;
+        Boolean active;
+    }
+
+    public static class TrainingDatasetVersionInfo {
+        private String fileName;
+        private long lastModified;
+        private long sizeBytes;
+        private boolean restorable;
+
+        public String getFileName() {
+            return fileName;
+        }
+
+        public long getLastModified() {
+            return lastModified;
+        }
+
+        public long getSizeBytes() {
+            return sizeBytes;
+        }
+
+        public boolean isRestorable() {
+            return restorable;
+        }
+    }
 
     public ChatResponse processMessage(ChatRequest request) {
         String userMessage = request.getUserMessage().trim().toLowerCase();
@@ -83,7 +344,226 @@ public class ChatBotService {
             message.contains("oppo") || message.contains("nothing")) {
             return "PRODUCT_SEARCH";
         }
+
+        String trainingIntent = detectIntentFromTrainingDataset(message);
+        if (trainingIntent != null) {
+            return trainingIntent;
+        }
+
         return "DEFAULT";
+    }
+
+    private String detectIntentFromTrainingDataset(String message) {
+        TrainingDataset dataset = loadTrainingDataset();
+        if (dataset == null || dataset.intents == null || dataset.intents.isEmpty()) {
+            return null;
+        }
+
+        String normalizedMessage = normalizeText(message);
+        TrainingIntent bestIntent = null;
+        int bestScore = 0;
+
+        for (TrainingIntent intent : dataset.intents) {
+            if (intent == null || intent.name == null || intent.keywords == null) {
+                continue;
+            }
+
+            int score = 0;
+            for (String keyword : intent.keywords) {
+                String normalizedKeyword = normalizeText(keyword);
+                if (normalizedKeyword.isEmpty()) {
+                    continue;
+                }
+                if (normalizedMessage.contains(normalizedKeyword)) {
+                    score += 2;
+                }
+            }
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestIntent = intent;
+            }
+        }
+
+        if (bestIntent == null || bestScore == 0) {
+            return null;
+        }
+
+        return mapTrainingIntent(bestIntent.name);
+    }
+
+    private String mapTrainingIntent(String trainingIntentName) {
+        if (trainingIntentName == null) {
+            return null;
+        }
+
+        switch (trainingIntentName.trim().toUpperCase(Locale.ROOT)) {
+            case "GREETING":
+                return "GREETING";
+            case "PRICE_QUERY":
+                return "PRICE_CHECK";
+            case "STOCK_CHECK":
+                return "STOCK_CHECK";
+            case "COMPARISON":
+                return "COMPARISON";
+            case "TECH_SPECS":
+                return "TECHNICAL_FAQ";
+            case "BUDGET_RECOMMENDATION":
+                return "PRODUCT_RECOMMENDATION";
+            case "PROMOTION":
+                return "PROMOTION";
+            case "ORDER_STATUS":
+                return "ORDER_STATUS";
+            case "PRODUCT_SEARCH":
+                return "PRODUCT_SEARCH";
+            case "SHIPPING_INFO":
+                return "SHIPPING_INFO";
+            case "OUT_OF_SCOPE":
+                return "DEFAULT";
+            default:
+                return null;
+        }
+    }
+
+    private TrainingDataset loadTrainingDataset() {
+        if (trainingDataset != null) {
+            return trainingDataset;
+        }
+
+        synchronized (this) {
+            if (trainingDataset != null) {
+                return trainingDataset;
+            }
+
+            TrainingDataset loaded = readTrainingDataset();
+            if (loaded != null) {
+                trainingDataset = loaded;
+            }
+            return trainingDataset;
+        }
+    }
+
+    private TrainingDataset readTrainingDataset() {
+        InputStream stream = null;
+
+        try {
+            if (servletContext != null) {
+                stream = servletContext.getResourceAsStream(TRAINING_DATASET_PATH);
+            }
+
+            if (stream == null) {
+                stream = getClass().getResourceAsStream(TRAINING_DATASET_PATH);
+            }
+
+            if (stream == null) {
+                return null;
+            }
+
+            try (InputStream input = stream;
+                 InputStreamReader reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
+                return gson.fromJson(reader, TrainingDataset.class);
+            }
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private Path resolveTrainingDatasetSnapshotPath() {
+        if (servletContext != null) {
+            String realPath = servletContext.getRealPath("/assets/data/" + TRAINING_DATASET_SNAPSHOT_FILE);
+            if (realPath != null && !realPath.trim().isEmpty()) {
+                return Paths.get(realPath);
+            }
+        }
+
+        return Paths.get(System.getProperty("user.dir"), "src", "main", "webapp", "assets", "data", TRAINING_DATASET_SNAPSHOT_FILE);
+    }
+
+    private Path resolveTrainingDatasetPrimaryPath() {
+        if (servletContext != null) {
+            String realPath = servletContext.getRealPath(TRAINING_DATASET_PATH);
+            if (realPath != null && !realPath.trim().isEmpty()) {
+                return Paths.get(realPath);
+            }
+        }
+
+        return Paths.get(System.getProperty("user.dir"), "src", "main", "webapp", "assets", "data", TRAINING_DATASET_PATH.substring(1));
+    }
+
+    private Path resolveTrainingDatasetHistoryDirectory() {
+        if (servletContext != null) {
+            String realPath = servletContext.getRealPath("/assets/data");
+            if (realPath != null && !realPath.trim().isEmpty()) {
+                return Paths.get(realPath);
+            }
+        }
+
+        return Paths.get(System.getProperty("user.dir"), "src", "main", "webapp", "assets", "data");
+    }
+
+    private Path resolveTrainingDatasetHistoryPath(String fileName) {
+        if (fileName == null || fileName.trim().isEmpty()) {
+            return null;
+        }
+
+        String normalized = fileName.trim();
+        if (!isTrainingDatasetHistoryFile(normalized) && !TRAINING_DATASET_SNAPSHOT_FILE.equals(normalized)) {
+            return null;
+        }
+
+        Path historyDir = resolveTrainingDatasetHistoryDirectory();
+        if (historyDir == null) {
+            return null;
+        }
+
+        return historyDir.resolve(normalized).normalize();
+    }
+
+    private boolean isTrainingDatasetHistoryFile(String fileName) {
+        if (fileName == null) {
+            return false;
+        }
+        return fileName.startsWith(TRAINING_DATASET_HISTORY_PREFIX)
+                && fileName.endsWith(TRAINING_DATASET_HISTORY_SUFFIX)
+                && !TRAINING_DATASET_SNAPSHOT_FILE.equals(fileName)
+                && !TRAINING_DATASET_PATH.substring(1).equals(fileName);
+    }
+
+    private void writeTrainingDatasetHistoryCopy(String json) throws java.io.IOException {
+        Path historyDir = resolveTrainingDatasetHistoryDirectory();
+        if (historyDir == null) {
+            return;
+        }
+
+        Files.createDirectories(historyDir);
+        String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+        Path historyPath = historyDir.resolve(TRAINING_DATASET_HISTORY_PREFIX + timestamp + TRAINING_DATASET_HISTORY_SUFFIX);
+        Files.writeString(historyPath, json, StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+    }
+
+    private TrainingDatasetVersionInfo buildVersionInfo(Path path) {
+        TrainingDatasetVersionInfo info = new TrainingDatasetVersionInfo();
+        info.fileName = path.getFileName().toString();
+        try {
+            info.lastModified = Files.getLastModifiedTime(path).toMillis();
+            info.sizeBytes = Files.size(path);
+        } catch (java.io.IOException ignored) {
+            info.lastModified = 0L;
+            info.sizeBytes = 0L;
+        }
+        info.restorable = true;
+        return info;
+    }
+
+    private String normalizeText(String text) {
+        if (text == null) {
+            return "";
+        }
+
+        String normalized = java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD);
+        normalized = normalized.replaceAll("[\\p{InCombiningDiacriticalMarks}]", "");
+        return normalized.toLowerCase(Locale.ROOT).replaceAll("\\s+", " ").trim();
     }
 
     private ChatResponse handleGreeting() {
@@ -112,19 +592,7 @@ public class ChatBotService {
         Integer budget = extractBudget(message);
         String brand = extractBrand(message);
 
-        List<ChatProductSpec> recommendations = new ArrayList<>();
-
-        if (budget != null) {
-            recommendations = productDAO.getProductsByPriceRange(budget - 2000000, budget + 2000000);
-        } else if (brand != null && !brand.isEmpty()) {
-            recommendations = productDAO.getProductsByBrand(brand);
-        } else {
-            recommendations = productDAO.getTopRatedProducts(5);
-        }
-
-        if (recommendations.isEmpty()) {
-            recommendations = productDAO.getTopRatedProducts(5);
-        }
+        List<ChatProductSpec> recommendations = resolveRecommendedProducts(budget, brand, 5);
 
         if (recommendations.isEmpty()) {
             response.setMessage("😔 Xin lỗi, hiện tại chưa có sản phẩm phù hợp để gợi ý. Vui lòng thử lại sau.");
@@ -145,7 +613,7 @@ public class ChatBotService {
 
     private ChatResponse handleProductSearch(String message) {
         ChatResponse response = new ChatResponse();
-        List<ChatProductSpec> results = productDAO.searchProducts(message);
+        List<ChatProductSpec> results = searchProductsAcrossSources(message);
 
         if (results.isEmpty()) {
             response.setMessage("🔍 Không tìm thấy sản phẩm nào với từ khóa \"" + message + "\".\n" +
@@ -213,11 +681,11 @@ public class ChatBotService {
         List<ChatProductSpec> allProducts;
         String brand = extractBrand(message);
         if (brand != null) {
-            allProducts = productDAO.getProductsByBrand(brand);
+            allProducts = searchProductsByBrandAcrossSources(brand);
         } else {
-            allProducts = productDAO.searchProducts(message);
+            allProducts = searchProductsAcrossSources(message);
             if (allProducts.isEmpty()) {
-                allProducts = productDAO.getAllProducts();
+                allProducts = getAllProductsAcrossSources();
             }
         }
 
@@ -245,11 +713,11 @@ public class ChatBotService {
         List<ChatProductSpec> inStock;
         String brand = extractBrand(message);
         if (brand != null) {
-            inStock = productDAO.getProductsByBrand(brand).stream()
+            inStock = searchProductsByBrandAcrossSources(brand).stream()
                     .filter(p -> p.getStock() > 0)
                     .collect(Collectors.toList());
         } else {
-            inStock = productDAO.getInStockProducts();
+            inStock = getInStockProductsAcrossSources();
         }
 
         StringBuilder sb = new StringBuilder();
@@ -276,39 +744,47 @@ public class ChatBotService {
 
     private ChatResponse handlePromotion() {
         ChatResponse response = new ChatResponse();
-        List<Voucher> vouchers = voucherDAO.getAllVouchers();
-        Date today = new Date();
-        List<Voucher> activeVouchers = vouchers.stream()
-                .filter(Voucher::isActive)
-                .filter(v -> v.getStartDate() == null || !v.getStartDate().after(today))
-                .filter(v -> v.getEndDate() == null || !v.getEndDate().before(today))
-                .filter(v -> v.getQuantity() == null || v.getUsedCount() == null || v.getUsedCount() < v.getQuantity())
-                .limit(5)
-                .collect(Collectors.toList());
-
         StringBuilder sb = new StringBuilder();
         sb.append("🎉 <b>ƯU ĐÃI HIỆN TẠI</b>\n\n");
 
-        if (activeVouchers.isEmpty()) {
-            sb.append("Hiện tại chưa có voucher công khai. Bạn có thể theo dõi trang ưu đãi để cập nhật sớm nhất.\n\n");
+        List<String> datasetPromotions = getTrainingPromotionLines();
+        if (!datasetPromotions.isEmpty()) {
+            for (String line : datasetPromotions) {
+                sb.append(line).append("\n");
+            }
+            sb.append("\n");
         } else {
-            for (Voucher voucher : activeVouchers) {
-                sb.append("• <b>").append(voucher.getCode()).append("</b>");
-                if (voucher.getDescription() != null && !voucher.getDescription().trim().isEmpty()) {
-                    sb.append(" - ").append(voucher.getDescription().trim());
-                }
-                sb.append("\n");
-                if (voucher.getDiscountType() != null && voucher.getDiscountValue() != null) {
-                    if ("PERCENT".equalsIgnoreCase(voucher.getDiscountType())) {
-                        sb.append("  Giảm: ").append(voucher.getDiscountValue().stripTrailingZeros().toPlainString()).append("%\n");
-                    } else {
-                        sb.append("  Giảm: ").append(String.format("%,.0f ₫", voucher.getDiscountValue())).append("\n");
+            List<Voucher> vouchers = voucherDAO.getAllVouchers();
+            Date today = new Date();
+            List<Voucher> activeVouchers = vouchers.stream()
+                    .filter(Voucher::isActive)
+                    .filter(v -> v.getStartDate() == null || !v.getStartDate().after(today))
+                    .filter(v -> v.getEndDate() == null || !v.getEndDate().before(today))
+                    .filter(v -> v.getQuantity() == null || v.getUsedCount() == null || v.getUsedCount() < v.getQuantity())
+                    .limit(5)
+                    .collect(Collectors.toList());
+
+            if (activeVouchers.isEmpty()) {
+                sb.append("Hiện tại chưa có voucher công khai. Bạn có thể theo dõi trang ưu đãi để cập nhật sớm nhất.\n\n");
+            } else {
+                for (Voucher voucher : activeVouchers) {
+                    sb.append("• <b>").append(voucher.getCode()).append("</b>");
+                    if (voucher.getDescription() != null && !voucher.getDescription().trim().isEmpty()) {
+                        sb.append(" - ").append(voucher.getDescription().trim());
                     }
+                    sb.append("\n");
+                    if (voucher.getDiscountType() != null && voucher.getDiscountValue() != null) {
+                        if ("PERCENT".equalsIgnoreCase(voucher.getDiscountType())) {
+                            sb.append("  Giảm: ").append(voucher.getDiscountValue().stripTrailingZeros().toPlainString()).append("%\n");
+                        } else {
+                            sb.append("  Giảm: ").append(String.format("%,.0f ₫", voucher.getDiscountValue())).append("\n");
+                        }
+                    }
+                    if (voucher.getMinOrderValue() != null) {
+                        sb.append("  Đơn tối thiểu: ").append(String.format("%,.0f ₫", voucher.getMinOrderValue())).append("\n");
+                    }
+                    sb.append("\n");
                 }
-                if (voucher.getMinOrderValue() != null) {
-                    sb.append("  Đơn tối thiểu: ").append(String.format("%,.0f ₫", voucher.getMinOrderValue())).append("\n");
-                }
-                sb.append("\n");
             }
         }
 
@@ -550,7 +1026,7 @@ public class ChatBotService {
                 continue;
             }
 
-            List<ChatProductSpec> found = productDAO.searchProducts(key);
+            List<ChatProductSpec> found = searchProductsAcrossSources(key);
             if (!found.isEmpty()) {
                 ChatProductSpec first = found.get(0);
                 boolean exists = candidates.stream().anyMatch(p -> p.getId().equals(first.getId()));
@@ -567,6 +1043,466 @@ public class ChatBotService {
             return candidates.subList(0, 3);
         }
         return candidates;
+    }
+
+    private List<ChatProductSpec> resolveRecommendedProducts(Integer budget, String brand, int limit) {
+        List<ChatProductSpec> products = getAllProductsAcrossSources();
+        if (products.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<ChatProductSpec> filtered = new ArrayList<>(products);
+        if (budget != null) {
+            int minPrice = Math.max(0, budget - 2000000);
+            int maxPrice = budget + 2000000;
+            filtered = filtered.stream()
+                    .filter(p -> resolveDisplayPrice(p) >= minPrice && resolveDisplayPrice(p) <= maxPrice)
+                    .collect(Collectors.toList());
+        }
+
+        if (brand != null && !brand.trim().isEmpty()) {
+            String normalizedBrand = normalizeText(brand);
+            filtered = filtered.stream()
+                    .filter(p -> normalizeText(p.getBrand()).contains(normalizedBrand)
+                            || normalizeText(p.getName()).contains(normalizedBrand))
+                    .collect(Collectors.toList());
+        }
+
+        filtered.sort((a, b) -> {
+            double ratingA = a.getRating() == null ? 0.0 : a.getRating();
+            double ratingB = b.getRating() == null ? 0.0 : b.getRating();
+            int byRating = Double.compare(ratingB, ratingA);
+            if (byRating != 0) {
+                return byRating;
+            }
+            return Integer.compare(resolveDisplayPrice(a), resolveDisplayPrice(b));
+        });
+
+        if (filtered.isEmpty() && budget != null) {
+            filtered = products.stream()
+                    .sorted((a, b) -> Double.compare(
+                            b.getRating() == null ? 0.0 : b.getRating(),
+                            a.getRating() == null ? 0.0 : a.getRating()))
+                    .collect(Collectors.toList());
+        }
+
+        return filtered.stream().limit(limit).collect(Collectors.toList());
+    }
+
+    private List<ChatProductSpec> searchProductsAcrossSources(String keyword) {
+        Map<Integer, ChatProductSpec> merged = new LinkedHashMap<>();
+
+        for (ChatProductSpec product : searchTrainingProducts(keyword)) {
+            if (product != null && product.getId() != null) {
+                merged.put(product.getId(), product);
+            }
+        }
+
+        for (ChatProductSpec product : productDAO.searchProducts(keyword)) {
+            if (product != null && product.getId() != null) {
+                if (merged.containsKey(product.getId())) {
+                    enrichProductWithDbData(merged.get(product.getId()), product);
+                } else {
+                    merged.put(product.getId(), product);
+                }
+            }
+        }
+
+        if (merged.isEmpty()) {
+            merged.putAll(indexProducts(getAllProductsAcrossSources()));
+        }
+
+        return new ArrayList<>(merged.values());
+    }
+
+    private List<ChatProductSpec> searchProductsByBrandAcrossSources(String brand) {
+        String normalizedBrand = normalizeText(brand);
+        if (normalizedBrand.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<Integer, ChatProductSpec> merged = new LinkedHashMap<>();
+        for (ChatProductSpec product : getAllProductsAcrossSources()) {
+            String productBrand = normalizeText(product.getBrand());
+            String productName = normalizeText(product.getName());
+            if (productBrand.contains(normalizedBrand) || productName.contains(normalizedBrand)) {
+                if (product.getId() != null) {
+                    merged.put(product.getId(), product);
+                }
+            }
+        }
+        return new ArrayList<>(merged.values());
+    }
+
+    private List<ChatProductSpec> getInStockProductsAcrossSources() {
+        return getAllProductsAcrossSources().stream()
+                .filter(p -> p.getStock() > 0)
+                .collect(Collectors.toList());
+    }
+
+    private List<ChatProductSpec> getAllProductsAcrossSources() {
+        Map<Integer, ChatProductSpec> merged = new LinkedHashMap<>();
+
+        for (ChatProductSpec product : getTrainingProducts()) {
+            if (product != null && product.getId() != null) {
+                merged.put(product.getId(), product);
+            }
+        }
+
+        for (ChatProductSpec product : productDAO.getAllProducts()) {
+            if (product != null && product.getId() != null) {
+                if (merged.containsKey(product.getId())) {
+                    enrichProductWithDbData(merged.get(product.getId()), product);
+                } else {
+                    merged.put(product.getId(), product);
+                }
+            }
+        }
+
+        return new ArrayList<>(merged.values());
+    }
+
+    private void enrichProductWithDbData(ChatProductSpec target, ChatProductSpec source) {
+        if (target == null || source == null) {
+            return;
+        }
+
+        if (isBlank(target.getImageUrl()) && !isBlank(source.getImageUrl())) {
+            target.setImageUrl(source.getImageUrl());
+        }
+        if (target.getRating() == null && source.getRating() != null) {
+            target.setRating(source.getRating());
+        }
+        if (target.getStock() == null && source.getStock() != null) {
+            target.setStock(source.getStock());
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private Map<Integer, ChatProductSpec> indexProducts(List<ChatProductSpec> products) {
+        Map<Integer, ChatProductSpec> indexed = new LinkedHashMap<>();
+        for (ChatProductSpec product : products) {
+            if (product != null && product.getId() != null) {
+                indexed.put(product.getId(), product);
+            }
+        }
+        return indexed;
+    }
+
+    private List<ChatProductSpec> getTrainingProducts() {
+        TrainingDataset dataset = loadTrainingDataset();
+        if (dataset == null || dataset.master_data == null || dataset.master_data.products == null) {
+            return Collections.emptyList();
+        }
+
+        List<ChatProductSpec> mapped = new ArrayList<>();
+        for (TrainingProductData product : dataset.master_data.products) {
+            ChatProductSpec spec = mapTrainingProduct(product);
+            if (spec != null) {
+                mapped.add(spec);
+            }
+        }
+        return mapped;
+    }
+
+    private List<ChatProductSpec> searchTrainingProducts(String keyword) {
+        String normalizedKeyword = normalizeText(keyword);
+        if (normalizedKeyword.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<ChatProductSpec> matches = new ArrayList<>();
+        for (ChatProductSpec product : getTrainingProducts()) {
+            String name = normalizeText(product.getName());
+            String brand = normalizeText(product.getBrand());
+            String desc = normalizeText(product.getDescription());
+            if (name.contains(normalizedKeyword) || brand.contains(normalizedKeyword) || desc.contains(normalizedKeyword)) {
+                matches.add(product);
+            }
+        }
+        return matches;
+    }
+
+    private List<String> getTrainingPromotionLines() {
+        TrainingDataset dataset = loadTrainingDataset();
+        if (dataset == null || dataset.master_data == null || dataset.master_data.promotions == null) {
+            return Collections.emptyList();
+        }
+
+        List<String> lines = new ArrayList<>();
+        for (TrainingPromotionData promo : dataset.master_data.promotions) {
+            if (promo == null || Boolean.FALSE.equals(promo.active) || promo.title == null || promo.title.trim().isEmpty()) {
+                continue;
+            }
+
+            StringBuilder line = new StringBuilder();
+            line.append("• <b>").append(promo.title.trim()).append("</b>");
+            if (promo.discount != null && !promo.discount.trim().isEmpty()) {
+                line.append(" - ").append(promo.discount.trim());
+            }
+            lines.add(line.toString());
+        }
+
+        return lines;
+    }
+
+    private List<TrainingPromotionSnapshot> buildTrainingPromotionSnapshots() {
+        List<TrainingPromotionSnapshot> snapshots = new ArrayList<>();
+        List<Voucher> vouchers = voucherDAO.getAllVouchers();
+        Date today = new Date();
+
+        for (Voucher voucher : vouchers) {
+            if (voucher == null || !voucher.isActive()) {
+                continue;
+            }
+            if (voucher.getStartDate() != null && voucher.getStartDate().after(today)) {
+                continue;
+            }
+            if (voucher.getEndDate() != null && voucher.getEndDate().before(today)) {
+                continue;
+            }
+            if (voucher.getQuantity() != null && voucher.getUsedCount() != null && voucher.getUsedCount() >= voucher.getQuantity()) {
+                continue;
+            }
+
+            TrainingPromotionSnapshot snapshot = new TrainingPromotionSnapshot();
+            snapshot.id = String.valueOf(voucher.getVoucherId());
+            snapshot.title = voucher.getCode();
+            snapshot.discount = formatVoucherDiscount(voucher);
+            snapshot.active = true;
+            snapshots.add(snapshot);
+        }
+
+        if (!snapshots.isEmpty()) {
+            return snapshots;
+        }
+
+        TrainingDataset dataset = loadTrainingDataset();
+        if (dataset == null || dataset.master_data == null || dataset.master_data.promotions == null) {
+            return snapshots;
+        }
+
+        for (TrainingPromotionData promo : dataset.master_data.promotions) {
+            if (promo == null || promo.title == null || promo.title.trim().isEmpty()) {
+                continue;
+            }
+
+            TrainingPromotionSnapshot snapshot = new TrainingPromotionSnapshot();
+            snapshot.id = promo.id;
+            snapshot.title = promo.title;
+            snapshot.discount = promo.discount;
+            snapshot.active = promo.active;
+            snapshots.add(snapshot);
+        }
+
+        return snapshots;
+    }
+
+    private String formatVoucherDiscount(Voucher voucher) {
+        if (voucher == null || voucher.getDiscountValue() == null) {
+            return "";
+        }
+
+        if ("PERCENT".equalsIgnoreCase(voucher.getDiscountType())) {
+            return voucher.getDiscountValue().stripTrailingZeros().toPlainString() + "%";
+        }
+
+        return String.format("%,.0f ₫", voucher.getDiscountValue());
+    }
+
+    private ChatProductSpec mapTrainingProduct(TrainingProductData product) {
+        if (product == null || product.name == null || product.name.trim().isEmpty()) {
+            return null;
+        }
+
+        ChatProductSpec spec = new ChatProductSpec();
+        spec.setId(product.id);
+        spec.setName(product.name.trim());
+        spec.setBrand(inferBrandFromName(product.name));
+        spec.setPrice(product.price == null ? 0 : product.price);
+        spec.setDiscountedPrice(null);
+        spec.setCpu(defaultIfBlank(product.cpu, "Đang cập nhật"));
+        spec.setRam(product.ram == null ? 0 : product.ram);
+        spec.setStorage(parseStorage(product.storage));
+        spec.setBattery(parseBattery(product.battery));
+        spec.setFrontCamera(defaultIfBlank(product.camera, "Đang cập nhật"));
+        spec.setRearCamera(defaultIfBlank(product.camera, "Đang cập nhật"));
+        spec.setColors(product.colors == null || product.colors.isEmpty() ? "Nhiều màu" : String.join(", ", product.colors));
+        spec.setStock(product.stock == null ? 0 : product.stock);
+        spec.setDescription(buildTrainingProductDescription(product));
+        spec.setRating(product.rating == null ? 4.5d : product.rating);
+        spec.setImageUrl(resolveTrainingProductImage(product));
+        return spec;
+    }
+
+    private String resolveTrainingProductImage(TrainingProductData product) {
+        if (product == null) {
+            return null;
+        }
+        if (!isBlank(product.imageUrl)) {
+            return product.imageUrl.trim();
+        }
+        if (!isBlank(product.image_url)) {
+            return product.image_url.trim();
+        }
+        if (!isBlank(product.image)) {
+            return product.image.trim();
+        }
+        return null;
+    }
+
+    private String buildTrainingProductDescription(TrainingProductData product) {
+        List<String> parts = new ArrayList<>();
+        if (product.status != null && !product.status.trim().isEmpty()) {
+            parts.add(product.status.trim());
+        }
+        if (product.original_price != null && product.price != null && product.original_price > product.price) {
+            parts.add("Giá gốc: " + formatCurrency(product.original_price));
+        }
+        if (product.cpu != null && !product.cpu.trim().isEmpty()) {
+            parts.add("CPU: " + product.cpu.trim());
+        }
+        if (product.camera != null && !product.camera.trim().isEmpty()) {
+            parts.add("Camera: " + product.camera.trim());
+        }
+        return parts.isEmpty() ? "Sản phẩm trong training dataset" : String.join(" | ", parts);
+    }
+
+    private String inferBrandFromName(String name) {
+        String normalized = normalizeText(name);
+        if (normalized.contains("iphone") || normalized.contains("apple")) {
+            return "Apple";
+        }
+        if (normalized.contains("samsung")) {
+            return "Samsung";
+        }
+        if (normalized.contains("xiaomi")) {
+            return "Xiaomi";
+        }
+        if (normalized.contains("oppo")) {
+            return "OPPO";
+        }
+        if (normalized.contains("realme")) {
+            return "Realme";
+        }
+        if (normalized.contains("nothing")) {
+            return "Nothing";
+        }
+        return "Không rõ";
+    }
+
+    private Integer parseStorage(String storage) {
+        if (storage == null) {
+            return 0;
+        }
+        Pattern pattern = Pattern.compile("(\\d{2,4})");
+        java.util.regex.Matcher matcher = pattern.matcher(storage);
+        if (matcher.find()) {
+            return parsePositiveInt(matcher.group(1));
+        }
+        return 0;
+    }
+
+    private Integer parseBattery(String battery) {
+        if (battery == null) {
+            return 0;
+        }
+        Pattern pattern = Pattern.compile("(\\d{3,5})");
+        java.util.regex.Matcher matcher = pattern.matcher(battery);
+        if (matcher.find()) {
+            return parsePositiveInt(matcher.group(1));
+        }
+        return 0;
+    }
+
+    private int resolveDisplayPrice(ChatProductSpec product) {
+        if (product == null) {
+            return Integer.MAX_VALUE;
+        }
+        Integer discounted = product.getDiscountedPrice();
+        if (discounted != null && discounted > 0) {
+            return discounted;
+        }
+        return product.getPrice() == null ? Integer.MAX_VALUE : product.getPrice();
+    }
+
+    private String formatCurrency(Integer value) {
+        if (value == null) {
+            return "0 ₫";
+        }
+        return String.format("%,d ₫", value);
+    }
+
+    private int resolveTrainingHistoryRetentionDays() {
+        Integer value = parsePositiveOrZeroInt(System.getProperty(TRAINING_HISTORY_RETENTION_PROPERTY));
+        if (value != null) {
+            return value;
+        }
+
+        value = parsePositiveOrZeroInt(System.getenv(TRAINING_HISTORY_RETENTION_ENV));
+        if (value != null) {
+            return value;
+        }
+
+        value = readRetentionDaysFromPropertiesFile();
+        if (value != null) {
+            return value;
+        }
+
+        return DEFAULT_TRAINING_HISTORY_RETENTION_DAYS;
+    }
+
+    private Integer readRetentionDaysFromPropertiesFile() {
+        Properties props = new Properties();
+
+        if (servletContext != null) {
+            try (InputStream is = servletContext.getResourceAsStream("/WEB-INF/classes/chatbot.properties")) {
+                if (is != null) {
+                    props.load(new InputStreamReader(is, StandardCharsets.UTF_8));
+                    Integer parsed = parsePositiveOrZeroInt(props.getProperty(TRAINING_HISTORY_RETENTION_PROPERTY));
+                    if (parsed != null) {
+                        return parsed;
+                    }
+                }
+            } catch (Exception ignored) {
+                // Fall back to local file lookup.
+            }
+        }
+
+        Path localConfig = Paths.get("chatbot.properties");
+        if (!Files.exists(localConfig) || !Files.isRegularFile(localConfig)) {
+            return null;
+        }
+
+        try (InputStream is = Files.newInputStream(localConfig)) {
+            props.clear();
+            props.load(new InputStreamReader(is, StandardCharsets.UTF_8));
+            return parsePositiveOrZeroInt(props.getProperty(TRAINING_HISTORY_RETENTION_PROPERTY));
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private Integer parsePositiveOrZeroInt(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            int parsed = Integer.parseInt(raw.trim());
+            return parsed >= 0 ? parsed : null;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private String defaultIfBlank(String value, String fallback) {
+        if (value == null || value.trim().isEmpty()) {
+            return fallback;
+        }
+        return value.trim();
     }
 
     private void appendComparisonRow(StringBuilder table,

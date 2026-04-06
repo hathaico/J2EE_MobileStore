@@ -388,6 +388,27 @@
                 </div>
             </div>
         </div>
+
+        <!-- Chatbot Training Shortcut -->
+        <div class="admin-card admin-animate-in mt-3">
+            <div class="admin-card-header">
+                <h5><i class="bi bi-robot"></i> Chatbot Training</h5>
+                <span class="admin-badge admin-badge-info">Live dataset</span>
+            </div>
+            <div class="admin-card-body">
+                <p style="margin-bottom: 16px; color: var(--admin-text-muted); line-height: 1.6;">
+                    Mở trang quản lý riêng để xem trước dataset, làm mới cache và tải JSON snapshot của chatbot.
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="${ctx}/admin/chatbot-training" class="btn btn-primary btn-sm rounded-3 d-flex align-items-center gap-2 px-3 py-2">
+                        <i class="bi bi-box-arrow-up-right"></i> Mở trang training
+                    </a>
+                    <a href="${ctx}/api/chatbot/dataset" class="btn btn-outline-primary btn-sm rounded-3 d-flex align-items-center gap-2 px-3 py-2" target="_blank" rel="noreferrer">
+                        <i class="bi bi-filetype-json"></i> Xem JSON
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 

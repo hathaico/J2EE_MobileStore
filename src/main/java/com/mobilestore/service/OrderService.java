@@ -167,8 +167,6 @@ public class OrderService {
      */
     private boolean isValidPaymentMethod(String paymentMethod) {
          return "CASH".equals(paymentMethod) ||
-             "BANK_TRANSFER".equals(paymentMethod) || 
-             "MOMO".equals(paymentMethod) ||
              "CREDIT_CARD".equals(paymentMethod);
     }
 }

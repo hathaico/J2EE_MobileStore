@@ -22,6 +22,12 @@ public class ChatBotController extends HttpServlet {
     private Gson gson = new Gson();
 
     @Override
+    public void init() throws ServletException {
+        super.init();
+        chatBotService.setServletContext(getServletContext());
+    }
+
+    @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         // Set CORS headers
         response.setHeader("Access-Control-Allow-Origin", "*");
@@ -36,6 +42,45 @@ public class ChatBotController extends HttpServlet {
         try {
             if ("/message".equals(path)) {
                 processMessage(request, response, out);
+            } else if ("/dataset/refresh".equals(path)) {
+                chatBotService.clearTrainingDatasetCache();
+                out.println("{\"status\":\"ok\",\"message\":\"Training dataset cache refreshed\"}");
+            } else if ("/dataset/restore".equals(path)) {
+                String fileName = request.getParameter("fileName");
+                if (fileName == null || fileName.trim().isEmpty()) {
+                    sendError(out, "fileName is required");
+                } else {
+                    try {
+                        String restoredPath = chatBotService.restoreTrainingDatasetFromFile(fileName);
+                        out.println("{\"status\":\"ok\",\"message\":\"Training dataset restored\",\"path\":\"" + escapeJson(restoredPath) + "\"}");
+                    } catch (IOException ioe) {
+                        sendError(out, "Unable to restore snapshot: " + ioe.getMessage());
+                    }
+                }
+            } else if ("/dataset/save".equals(path)) {
+                try {
+                    String savedPath = chatBotService.writeTrainingDatasetPrimaryFile();
+                    out.println("{\"status\":\"ok\",\"message\":\"Training dataset saved to primary file\",\"path\":\"" + escapeJson(savedPath) + "\"}");
+                } catch (IOException ioe) {
+                    sendError(out, "Unable to save snapshot: " + ioe.getMessage());
+                }
+            } else if ("/dataset/prune".equals(path)) {
+                String daysParam = request.getParameter("days");
+                int days = 30;
+                try {
+                    if (daysParam != null && !daysParam.trim().isEmpty()) {
+                        days = Integer.parseInt(daysParam.trim());
+                    }
+                } catch (NumberFormatException ignored) {
+                    days = 30;
+                }
+
+                if (days < 0) {
+                    sendError(out, "days must be >= 0");
+                } else {
+                    int deleted = chatBotService.pruneTrainingDatasetVersions(days);
+                    out.println("{\"status\":\"ok\",\"message\":\"History pruned\",\"deleted\":" + deleted + ",\"days\":" + days + "}");
+                }
             } else {
                 sendError(out, "Unknown endpoint");
             }
@@ -59,6 +104,12 @@ public class ChatBotController extends HttpServlet {
 
         if ("/health".equals(path)) {
             out.println("Chatbot API is running!");
+        } else if ("/dataset".equals(path)) {
+            response.setContentType("application/json");
+            out.println(chatBotService.exportTrainingDatasetSnapshotJson());
+        } else if ("/dataset/history".equals(path)) {
+            response.setContentType("application/json");
+            out.println(gson.toJson(chatBotService.listTrainingDatasetVersions()));
         } else if ("/greeting".equals(path)) {
             ChatRequest req = new ChatRequest("hello");
             req.setIntent("GREETING");
@@ -123,5 +174,12 @@ public class ChatBotController extends HttpServlet {
         errorResponse.setResponseType("ERROR");
         errorResponse.setTimestamp(LocalDateTime.now().format(DateTimeFormatter.ISO_TIME));
         out.println(gson.toJson(errorResponse));
+    }
+
+    private String escapeJson(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

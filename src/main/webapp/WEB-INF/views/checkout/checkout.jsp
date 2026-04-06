@@ -89,23 +89,7 @@
                                     </label>
                                 </div>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="paymentMethod" 
-                                           id="paymentBank" value="BANK_TRANSFER"
-                                           ${paymentMethod == 'BANK_TRANSFER' ? 'checked' : ''}>
-                                    <label class="form-check-label" for="paymentBank">
-                                        <i class="bi bi-bank"></i> Chuyển khoản ngân hàng
-                                    </label>
-                                </div>
-                                <div class="form-check">
                                     <input class="form-check-input" type="radio" name="paymentMethod"
-                                           id="paymentMomo" value="MOMO"
-                                           ${paymentMethod == 'MOMO' ? 'checked' : ''}>
-                                    <label class="form-check-label" for="paymentMomo">
-                                        <i class="bi bi-wallet2"></i> Ví MoMo
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="paymentMethod" 
                                            id="paymentCard" value="CREDIT_CARD"
                                            ${paymentMethod == 'CREDIT_CARD' ? 'checked' : ''}>
                                     <label class="form-check-label" for="paymentCard">
@@ -113,7 +97,7 @@
                                     </label>
                                 </div>
                                 <div class="small text-muted ms-4">
-                                    Khi bấm Đặt Hàng, hệ thống sẽ chuyển sang cổng thanh toán MoMo/VNPay (hoặc mô phỏng local nếu DEV MODE bật).
+                                    Khi bấm Đặt Hàng, hệ thống sẽ chuyển sang cổng thanh toán VNPay (hoặc mô phỏng local nếu DEV MODE bật).
                                 </div>
                                 <c:if test="${vnpayDevModeActive}">
                                     <div class="small text-info mt-2">
@@ -124,7 +108,7 @@
 
                             <div class="alert alert-light border small mb-3 alert-permanent" role="alert">
                                 <i class="bi bi-shield-lock"></i>
-                                Không nhập số thẻ/CVV tại website. Sau khi bấm Đặt Hàng, bạn sẽ được chuyển sang cổng MoMo hoặc VNPay để thanh toán an toàn.
+                                Không nhập số thẻ/CVV tại website. Sau khi bấm Đặt Hàng, bạn sẽ được chuyển sang cổng VNPay để thanh toán an toàn.
                             </div>
                             
                             <div class="mb-3">

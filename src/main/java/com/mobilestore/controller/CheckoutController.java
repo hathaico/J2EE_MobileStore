@@ -44,16 +44,12 @@ public class CheckoutController extends HttpServlet {
         String errorCode = request.getParameter("error");
         if ("vnpay_not_configured".equals(errorCode)) {
             request.setAttribute("error", "Chưa cấu hình VNPay. Vui lòng thiết lập VNPAY_TMN_CODE và VNPAY_HASH_SECRET.");
-        } else if ("momo_not_configured".equals(errorCode)) {
-            request.setAttribute("error", "Chưa cấu hình MoMo. Vui lòng thiết lập MOMO_PARTNER_CODE, MOMO_ACCESS_KEY và MOMO_SECRET_KEY.");
         } else if ("missing_order".equals(errorCode)) {
             request.setAttribute("error", "Không tìm thấy thông tin đơn hàng để thanh toán.");
         } else if ("invalid_order".equals(errorCode) || "order_not_found".equals(errorCode)) {
             request.setAttribute("error", "Đơn hàng không hợp lệ hoặc không tồn tại.");
         } else if ("invalid_vnpay_response".equals(errorCode)) {
             request.setAttribute("error", "Phản hồi VNPay không hợp lệ. Vui lòng thử lại.");
-        } else if ("invalid_momo_response".equals(errorCode)) {
-            request.setAttribute("error", "Phản hồi MoMo không hợp lệ. Vui lòng thử lại.");
         }
         
         // Refresh cart with latest product information
@@ -120,6 +116,9 @@ public class CheckoutController extends HttpServlet {
             if (customerPhone == null || !customerPhone.trim().matches("^[0-9]{10,11}$")) {
                 throw new IllegalArgumentException("Số điện thoại phải có 10-11 chữ số.");
             }
+            if (!("CASH".equals(paymentMethod) || "CREDIT_CARD".equals(paymentMethod))) {
+                throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ.");
+            }
 
             Integer customerId = resolveOrCreateCustomerId(
                     session,
@@ -174,12 +173,6 @@ public class CheckoutController extends HttpServlet {
                 if ("CREDIT_CARD".equals(paymentMethod)) {
                     // Keep cart until VNPay callback confirms success.
                     response.sendRedirect(request.getContextPath() + "/payment/vnpay/create?orderId=" + orderId);
-                    return;
-                }
-
-                if ("MOMO".equals(paymentMethod)) {
-                    // Keep cart until MoMo callback confirms success.
-                    response.sendRedirect(request.getContextPath() + "/payment/momo/create?orderId=" + orderId);
                     return;
                 }
 

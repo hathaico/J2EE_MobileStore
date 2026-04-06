@@ -79,6 +79,9 @@
                 <a href="${ctx}/" class="admin-nav-item" target="_blank">
                     <i class="bi bi-shop"></i> Xem cửa hàng
                 </a>
+                <a href="${ctx}/admin/chatbot-training" class="admin-nav-item ${activePage == 'chatbot-training' ? 'active' : ''}">
+                    <i class="bi bi-robot"></i> Chatbot Training
+                </a>
             </div>
         </nav>
 

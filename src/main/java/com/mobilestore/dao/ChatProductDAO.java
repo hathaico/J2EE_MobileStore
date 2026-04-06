@@ -2,6 +2,7 @@ package com.mobilestore.dao;
 
 import com.mobilestore.model.ChatProductSpec;
 import com.mobilestore.model.Product;
+import com.mobilestore.util.ProductImageUtil;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -135,7 +136,58 @@ public class ChatProductDAO {
         chat.setStock(product.getStockQuantity() == null ? 0 : product.getStockQuantity());
         chat.setDescription(defaultIfBlank(product.getDescription(), "Sản phẩm chính hãng tại Mobile Store"));
         chat.setRating(4.5d);
+        chat.setImageUrl(resolveImageUrl(product));
         return chat;
+    }
+
+    private String resolveImageUrl(Product product) {
+        String primary = normalizeImageValue(defaultIfBlank(product.getImageUrl(), ""));
+        if (!primary.isEmpty()) {
+            return ProductImageUtil.resolveSrc("", primary);
+        }
+
+        List<String> gallery = product.getImageUrlList();
+        if (gallery != null && !gallery.isEmpty()) {
+            String fallback = normalizeImageValue(defaultIfBlank(gallery.get(0), ""));
+            if (!fallback.isEmpty()) {
+                return ProductImageUtil.resolveSrc("", fallback);
+            }
+        }
+
+        return null;
+    }
+
+    private String normalizeImageValue(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        String value = raw.trim();
+        if (value.isEmpty()) {
+            return "";
+        }
+
+        if (value.contains(",")) {
+            value = value.split(",")[0].trim();
+        }
+
+        value = value.replace('\\', '/');
+        if (value.isEmpty()) {
+            return "";
+        }
+
+        int marker = value.toLowerCase(Locale.ROOT).indexOf("assets/images/products/");
+        if (marker >= 0) {
+            return "/" + value.substring(marker).replaceAll("^/+", "");
+        }
+
+        if (value.matches("^[A-Za-z]:/.*")) {
+            int lastSlash = value.lastIndexOf('/');
+            if (lastSlash >= 0 && lastSlash < value.length() - 1) {
+                return value.substring(lastSlash + 1);
+            }
+        }
+
+        return value;
     }
 
     private String resolveName(Product product) {
